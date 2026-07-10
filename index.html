@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>しずくAI先生の動画投稿スケジュール管理システム</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef3fb;
+    --surface:#ffffff;
+    --text:#1a1a1a;
+    --text-dim:#5c5c5c;
+    --ink:#1a1a1a;
+    --hp:#e0231e;
+    --exp:#2e9e5b;
+    --mp:#2f6fed;
+    --gold:#f0b400;
+    --live:#9b4dcc;
+    --hp-bg:#fdeceb;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(600px 300px at 90% -5%, rgba(47,111,237,0.08), transparent 60%),
+      radial-gradient(500px 260px at 5% 0%, rgba(240,180,0,0.10), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Zen Kaku Gothic New', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-family:'Space Grotesk','Zen Kaku Gothic New',sans-serif;}
+  .pixel{font-family:'DotGothic16','Zen Kaku Gothic New',sans-serif;}
+  .wrap{max-width:880px;margin:0 auto;padding:24px 18px 90px;}
+
+  .pixel-box{
+    background:var(--surface);
+    border:3px solid var(--ink);
+    box-shadow:5px 5px 0 var(--ink);
+    border-radius:2px;
+  }
+
+  /* Mascot */
+  .mascot-row{display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;padding:16px;}
+  .mascot-avatar{
+    flex:none;width:56px;height:56px;
+    background:linear-gradient(180deg,#dff0ff,#bfe0ff);
+    border:3px solid var(--ink);
+    border-radius:50% 50% 46% 46%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:26px;
+    box-shadow:3px 3px 0 var(--ink);
+  }
+  .speech{flex:1;}
+  .speech .name{font-family:'DotGothic16',sans-serif;font-size:12.5px;color:var(--mp);margin-bottom:5px;}
+  .speech p{margin:0;font-size:13px;line-height:1.85;}
+
+  header.hero{margin-bottom:18px;}
+  .eyebrow{font-family:'DotGothic16',sans-serif;font-size:11.5px;color:var(--mp);letter-spacing:.1em;margin-bottom:6px;}
+  h1{font-family:'DotGothic16',sans-serif;font-weight:400;font-size:clamp(18px,4vw,25px);line-height:1.6;margin:0 0 8px;}
+  .lede{color:var(--text-dim);font-size:13px;line-height:1.8;}
+
+  .panel{padding:22px 20px;margin-bottom:24px;}
+
+  /* Nav */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+  .topbar .me{font-size:13px;font-weight:700;}
+  .topbar .me .pixel{color:var(--mp);}
+  .nav{display:flex;gap:8px;flex-wrap:wrap;}
+  .nav button{
+    font-family:'DotGothic16',sans-serif;
+    font-size:13px;
+    background:var(--surface);
+    border:2px solid var(--ink);
+    box-shadow:3px 3px 0 var(--ink);
+    padding:8px 14px;border-radius:2px;cursor:pointer;color:var(--text);
+  }
+  .nav button.active{background:var(--gold);}
+  .nav button.ghost{box-shadow:none;border-color:#aaa;color:var(--text-dim);}
+  .nav button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink);}
+
+  form{display:grid;gap:18px;margin-bottom:4px;}
+  .field label{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px;margin-bottom:8px;font-weight:700;}
+  .req{display:inline-block;background:var(--hp);color:#fff;font-family:'DotGothic16',sans-serif;font-size:10.5px;padding:2px 7px;border-radius:2px;border:1.5px solid var(--ink);}
+  .field .hint{font-size:11.5px;color:var(--text-dim);margin-top:6px;}
+  .field input, .field select{
+    display:block;width:100%;height:48px;
+    background:#fbfcff;border:2px solid var(--ink);border-radius:3px;
+    padding:10px 12px;color:var(--text);font-size:16px;
+    font-family:'Space Grotesk','Zen Kaku Gothic New',sans-serif;
+    outline:none;-webkit-appearance:none;appearance:none;margin:0;
+  }
+  .field select{
+    font-family:'Zen Kaku Gothic New',sans-serif;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%231a1a1a' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;
+  }
+  .field input[type="time"]{line-height:1;}
+  .field input:focus, .field select:focus{border-color:var(--mp);}
+
+  button.run{
+    justify-self:center;
+    background:var(--gold);color:var(--ink);
+    border:3px solid var(--ink);box-shadow:4px 4px 0 var(--ink);
+    font-family:'DotGothic16',sans-serif;font-size:15px;
+    padding:12px 36px;border-radius:2px;cursor:pointer;letter-spacing:.08em;
+    transition:transform .08s ease;
+  }
+  button.run:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink);}
+  button.run.blue{background:#cfe0ff;}
+
+  .form-error{color:var(--hp);font-size:12.5px;display:none;font-weight:700;}
+
+  /* Results */
+  #results{display:none;margin-top:6px;}
+  .viewing-banner{
+    display:none;
+    background:#fff8e0;border:2px solid var(--ink);border-radius:3px;
+    padding:12px 14px;font-size:13px;font-weight:700;margin-bottom:16px;
+  }
+  .stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;}
+  .stat{background:var(--surface);border:2px solid var(--ink);border-radius:3px;padding:14px 15px;}
+  .stat .label{font-family:'DotGothic16',sans-serif;font-size:11px;color:var(--text-dim);margin-bottom:6px;}
+  .stat .value{font-size:22px;font-weight:700;}
+  .stat .value.hp{color:var(--hp);}
+  .stat .value.exp{color:var(--exp);}
+
+  .section-title{font-family:'DotGothic16',sans-serif;font-size:15.5px;margin:14px 0 4px;display:flex;align-items:center;gap:8px;}
+  .section-title::before{content:'▶';color:var(--gold);font-size:12px;}
+  .section-sub{font-size:11.5px;color:var(--text-dim);margin-bottom:14px;}
+
+  .roadmap{position:relative;margin-bottom:10px;padding:14px 10px 6px;}
+  .roadmap svg{width:100%;display:block;overflow:visible;}
+  .stations{display:grid;grid-template-columns:repeat(5,1fr);margin-top:4px;}
+  .station{text-align:center;padding:0 4px;}
+  .station .when{font-family:'DotGothic16',sans-serif;font-size:10px;color:var(--text-dim);margin-bottom:4px;}
+  .station .who{font-size:14px;font-weight:700;font-family:'Space Grotesk',sans-serif;}
+  .station.now .who{color:var(--mp);}
+  .station.goal .who{color:var(--hp);}
+
+  .advice-card{
+    background:var(--surface);border:2px solid var(--ink);border-radius:3px;
+    padding:15px 16px;margin-bottom:11px;font-size:13.5px;line-height:1.9;
+  }
+  .advice-card b{color:var(--hp);}
+  .advice-card .tag{
+    display:inline-block;font-family:'DotGothic16',sans-serif;font-size:11px;
+    background:var(--ink);color:#fff;padding:3px 9px;border-radius:2px;margin-bottom:8px;
+  }
+
+  .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-bottom:14px;}
+  .day-card{
+    background:var(--surface);border:2px solid var(--ink);border-radius:3px;
+    padding:9px 7px;min-height:138px;display:flex;flex-direction:column;
+  }
+  .day-card.rest{background:#f5f6f8;}
+  .day-card .dow{font-family:'DotGothic16',sans-serif;font-size:13px;margin-bottom:2px;}
+  .day-card .free{font-size:9.5px;color:var(--text-dim);margin-bottom:7px;}
+  .task{
+    background:#f4f6fb;border-left:3px solid var(--mp);border-radius:2px;
+    padding:5px 6px;font-size:10px;line-height:1.55;margin-bottom:5px;
+  }
+  .task .t-time{display:block;font-family:'Space Grotesk',sans-serif;color:var(--text-dim);font-size:9.5px;margin-bottom:2px;}
+  .task.review{border-left-color:var(--exp);}
+  .task.shoot{border-left-color:var(--hp);}
+  .task.post{border-left-color:var(--gold);}
+  .task.academy{border-left-color:var(--mp);background:#eaf1ff;font-weight:700;}
+  .task.live{border-left-color:var(--live);background:#f5edfc;}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--text-dim);margin-bottom:22px;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:10px;height:10px;border:1.5px solid var(--ink);display:inline-block;}
+  .warn-card{
+    background:var(--hp-bg);border:2px solid var(--hp);border-radius:3px;
+    padding:13px 15px;font-size:12.5px;line-height:1.8;margin-bottom:16px;
+  }
+
+  /* Auth screen */
+  #authScreen{max-width:480px;margin:0 auto;}
+  .auth-tabs{display:flex;gap:8px;margin-bottom:16px;}
+  .auth-tabs button{
+    flex:1;font-family:'DotGothic16',sans-serif;font-size:13.5px;
+    background:var(--surface);border:2px solid var(--ink);padding:10px;
+    border-radius:2px;cursor:pointer;color:var(--text-dim);
+  }
+  .auth-tabs button.active{background:var(--gold);color:var(--ink);box-shadow:3px 3px 0 var(--ink);}
+
+  /* Student list */
+  .student-row{
+    display:flex;align-items:center;gap:12px;
+    background:var(--surface);border:2px solid var(--ink);border-radius:3px;
+    padding:13px 15px;margin-bottom:9px;cursor:pointer;
+    transition:transform .08s ease;
+  }
+  .student-row:active{transform:translate(2px,2px);}
+  .status-dot{flex:none;width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);}
+  .status-dot.on{background:#3ddc6a;}
+  .status-dot.off{background:#c9c9c9;}
+  .student-row .s-name{font-weight:700;font-size:14.5px;flex:1;}
+  .student-row .s-me{font-family:'DotGothic16',sans-serif;font-size:10.5px;background:var(--mp);color:#fff;padding:2px 7px;border-radius:2px;}
+  .student-row .s-status{font-size:11px;color:var(--text-dim);}
+  .student-row .s-noresult{font-size:10.5px;color:var(--text-dim);}
+
+  .setup-warn{
+    background:#fff3cd;border:3px solid var(--ink);border-radius:2px;
+    padding:16px;font-size:13px;line-height:1.9;margin-bottom:20px;
+  }
+  .setup-warn b{color:var(--hp);}
+
+  footer{margin-top:36px;font-size:10.5px;color:var(--text-dim);text-align:center;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  @media(max-width:560px){
+    .stations{grid-template-columns:repeat(3,1fr);row-gap:12px;}
+    .panel{padding:18px;}
+    .week-grid{grid-template-columns:repeat(2,1fr);}
+    .mascot-row{flex-direction:column;align-items:center;text-align:center;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div id="setupWarn" class="setup-warn" style="display:none;">
+    <b>⚠ 初期設定が必要です</b><br>
+    このファイル内の <b>firebaseConfig</b> がまだ設定されていません。ファイル下部のスクリプト内にある「ここにFirebaseの設定を貼り付け」の部分を、Firebaseコンソールで取得した設定に書き換えてください。手順は付属のセットアップガイドを参照してください。
+  </div>
+
+  <!-- ========== ログイン / 新規登録 ========== -->
+  <div id="previewNotice" class="setup-warn">
+    <b>ℹ このプレビューではログインは動作しません</b><br>
+    チャット内のプレビューでは通信が制限されるため、ログイン機能は動きません。GitHub Pagesで公開したURLから開くと正常に動作します。
+  </div>
+
+  <div id="authScreen" class="screen active">
+    <div class="mascot-row pixel-box">
+      <div class="mascot-avatar">🤖</div>
+      <div class="speech">
+        <div class="name pixel">しずくAI先生</div>
+        <p>ようこそ、冒険者くん！はじめての人は「新規登録」、2回目からは「ログイン」してね。一度ログインすれば、この端末では次から自動でログインされるよ。</p>
+      </div>
+    </div>
+
+    <header class="hero">
+      <div class="eyebrow pixel">RPG ACADEMY MEMBERS</div>
+      <h1>しずくAI先生の<br>動画投稿スケジュール管理システム</h1>
+    </header>
+
+    <div class="panel pixel-box">
+      <div class="auth-tabs">
+        <button id="tabLogin" class="active" type="button">ログイン</button>
+        <button id="tabRegister" type="button">新規登録</button>
+      </div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="loginEmail">メールアドレス <span class="req">必須</span></label>
+          <input type="email" id="loginEmail" placeholder="例）shizuku@example.com" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="loginPass">パスワード <span class="req">必須</span></label>
+          <input type="password" id="loginPass" placeholder="6文字以上" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="run pixel">ログイン</button>
+        <div class="form-error" id="loginError"></div>
+      </form>
+
+      <form id="registerForm" style="display:none;">
+        <div class="field">
+          <label for="regName">名前（生徒一覧に表示されます） <span class="req">必須</span></label>
+          <input type="text" id="regName" placeholder="例）しずく" maxlength="20" required style="font-family:'Zen Kaku Gothic New',sans-serif;">
+        </div>
+        <div class="field">
+          <label for="regEmail">メールアドレス <span class="req">必須</span></label>
+          <input type="email" id="regEmail" placeholder="例）shizuku@example.com" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="regPass">パスワード（6文字以上） <span class="req">必須</span></label>
+          <input type="password" id="regPass" placeholder="自分だけのパスワード" autocomplete="new-password" minlength="6" required>
+        </div>
+        <button type="submit" class="run pixel">登録して始める</button>
+        <div class="form-error" id="regError"></div>
+      </form>
+      <div style="text-align:center;margin-top:18px;padding-top:16px;border-top:2px dashed #c9c9c9;">
+        <button id="guestBtn" type="button" class="run pixel blue" style="font-size:13px;padding:10px 24px;">ログインせずに使う（お試し）</button>
+        <div style="font-size:11px;color:var(--text-dim);margin-top:8px;">※お試しモードでは結果の保存と生徒一覧は使えません</div>
+      </div>
+    </div>
+    <footer>RPGアカデミー受講生専用システム</footer>
+  </div>
+
+  <!-- ========== メインアプリ ========== -->
+  <div id="appScreen" class="screen">
+
+    <div class="topbar">
+      <div class="me">🎮 <span class="pixel" id="meName"></span> さん</div>
+      <div class="nav">
+        <button id="navMy" class="active" type="button">マイ診断</button>
+        <button id="navList" type="button">生徒一覧</button>
+        <button id="navLogout" class="ghost" type="button">ログアウト</button>
+      </div>
+    </div>
+
+    <!-- --- マイ診断 --- -->
+    <div id="pageMy">
+      <div class="mascot-row pixel-box">
+        <div class="mascot-avatar">🤖</div>
+        <div class="speech">
+          <div class="name pixel">しずくAI先生</div>
+          <p id="mascotMsg">今のステータスを入力してくれれば、1年後のゴールまでの道のりと、毎週やるべきことを全部教えてあげるね。結果は保存されて、他の仲間も見られるよ！</p>
+        </div>
+      </div>
+
+      <div class="panel pixel-box" id="formPanel">
+        <form id="form">
+          <div class="field">
+            <label for="current">現在のフォロワー数（今の強さ） <span class="req">必須</span></label>
+            <input type="number" id="current" placeholder="例）1200" min="0" required>
+          </div>
+          <div class="field">
+            <label for="target">1年後に目指したいフォロワー数（ゴール） <span class="req">必須</span></label>
+            <input type="number" id="target" placeholder="例）10000" min="0" required>
+          </div>
+          <div class="field">
+            <label for="posts">1週間に投稿している現在の数 <span class="req">必須</span></label>
+            <input type="number" id="posts" placeholder="例）3" min="0" required>
+            <div class="hint">投稿0の場合は「0」と入力してください</div>
+          </div>
+          <div class="field">
+            <label for="genre">どんなジャンルの投稿をしていきたい？ <span class="req">必須</span></label>
+            <select id="genre" required>
+              <option value="" disabled selected>選択してください</option>
+              <option value="美容コース">🖌 美容コース</option>
+              <option value="ペットコース">🐾 ペットコース</option>
+              <option value="フィットネスコース">🏋 フィットネスコース</option>
+              <option value="おもしろエンタメ">😄 おもしろエンタメ</option>
+              <option value="街中インタビューコース">🎤 街中インタビューコース</option>
+              <option value="料理コース">🍴 料理コース</option>
+              <option value="ダンスコース">👟 ダンスコース</option>
+              <option value="ミュージシャンコース">🎵 ミュージシャンコース</option>
+              <option value="VLOG旅行">📷 VLOG旅行</option>
+              <option value="カップル、ファミリー">💗 カップル、ファミリー</option>
+              <option value="ゲーム実況">🎮 ゲーム実況</option>
+              <option value="ライブ配信">📡 ライブ配信</option>
+              <option value="ドッキリ検証">💥 ドッキリ検証</option>
+              <option value="社員インフルエンサー">👥 社員インフルエンサー</option>
+              <option value="社長コース">👑 社長コース</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="weekdayFree">平日1日に動画活動へ使える自由時間（時間） <span class="req">必須</span></label>
+            <input type="number" id="weekdayFree" placeholder="例）1.5" min="0" step="0.5" required>
+          </div>
+          <div class="field">
+            <label for="weekendFree">休日1日に動画活動へ使える自由時間（時間） <span class="req">必須</span></label>
+            <input type="number" id="weekendFree" placeholder="例）4" min="0" step="0.5" required>
+          </div>
+          <div class="field">
+            <label for="wake">起床時間 <span class="req">必須</span></label>
+            <input type="time" id="wake" value="07:00" required>
+          </div>
+          <div class="field">
+            <label for="sleep">就寝時間 <span class="req">必須</span></label>
+            <input type="time" id="sleep" value="23:30" required>
+          </div>
+          <div class="field">
+            <label for="prep">1投稿あたりの制作時間の目安（撮影・編集・文章作成、分） <span class="req">必須</span></label>
+            <input type="number" id="prep" placeholder="例）60" min="0" step="5" required>
+          </div>
+          <div class="field">
+            <label for="live">ライブ配信はやっていきたい？ <span class="req">必須</span></label>
+            <select id="live" required>
+              <option value="" disabled selected>選択してください</option>
+              <option value="weekly2">すでにやっている（週2回以上）</option>
+              <option value="weekly1">すでにやっている（週1回程度）</option>
+              <option value="start">これから始めたい</option>
+              <option value="no">今は考えていない</option>
+            </select>
+          </div>
+          <button type="submit" class="run pixel">AIスケジュール制作開始！</button>
+          <div class="form-error" id="error">すべての項目に正しい数値を入力してください。</div>
+        </form>
+      </div>
+
+      <div id="results">
+        <div class="viewing-banner" id="viewingBanner"></div>
+        <div class="stat-row" id="statRow"></div>
+
+        <div class="section-title pixel">冒険ロードマップ</div>
+        <div class="section-sub">3ヶ月ごとの中間ゴール（フォロワー数）</div>
+        <div class="roadmap pixel-box">
+          <svg viewBox="0 0 500 20" preserveAspectRatio="none">
+            <line x1="10" y1="10" x2="490" y2="10" stroke="#c6c6c6" stroke-width="1.5" stroke-dasharray="1 8" stroke-linecap="round"/>
+          </svg>
+          <div class="stations" id="stations"></div>
+        </div>
+        <div style="height:14px;"></div>
+
+        <div class="section-title pixel">しずくAI先生からのアドバイス</div>
+        <div class="section-sub">現在のペースと必要な伸び率をもとにした戦略アドバイス</div>
+        <div id="adviceBox"></div>
+
+        <div class="section-title pixel">未来シミュレーション</div>
+        <div class="section-sub">何も行動しないあなた VS この結果どおり行動していくあなた（1年後・2年後・3年後）</div>
+        <div class="pixel-box" style="padding:18px 14px 12px;margin-bottom:10px;">
+          <svg id="futureChart" viewBox="0 0 500 260" style="width:100%;display:block;overflow:visible;"></svg>
+        </div>
+        <div class="legend" style="margin-bottom:10px;">
+          <span><i style="background:var(--mp)"></i>行動するあなた</span>
+          <span><i style="background:#9a9a9a"></i>何も行動しないあなた</span>
+        </div>
+        <div id="futureComment"></div>
+
+        <div class="section-title pixel">週間クエストスケジュール</div>
+        <div class="section-sub">起床・就寝時間と自由時間をもとに組んだ、ゴール達成用の週間モデルです</div>
+        <div id="scheduleWarn"></div>
+        <div class="week-grid" id="weekGrid"></div>
+        <div class="legend">
+          <span><i style="background:var(--mp)"></i>RPGアカデミー授業（火・金 22:00〜23:00）</span>
+          <span><i style="background:var(--live)"></i>ライブ配信</span>
+          <span><i style="background:var(--hp)"></i>撮影・編集クエスト（まとめ撮り）</span>
+          <span><i style="background:var(--gold)"></i>投稿ミッション</span>
+          <span><i style="background:var(--exp)"></i>ステータス確認（分析）</span>
+          <span><i style="background:#f5f6f8"></i>休息（HP回復）</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- --- 生徒一覧 --- -->
+    <div id="pageList" style="display:none;">
+      <div class="mascot-row pixel-box">
+        <div class="mascot-avatar">🤖</div>
+        <div class="speech">
+          <div class="name pixel">しずくAI先生</div>
+          <p>仲間の冒険の記録だよ。名前をタップすると、その人の診断結果とスケジュールが見られるよ（見るだけ。書き換えられるのは本人だけ！）。緑のランプはいまログイン中のしるし。</p>
+        </div>
+      </div>
+      <div class="section-title pixel">生徒一覧</div>
+      <div class="section-sub">🟢 = オンライン（5分以内に操作あり） / ⚪ = オフライン</div>
+      <div id="studentList"><div style="font-size:13px;color:var(--text-dim);">読み込み中…</div></div>
+    </div>
+
+    <footer>この診断はスクール受講生向けの目安計算です。実際の伸びはコンテンツの質やアルゴリズムの変動に左右されます。</footer>
+  </div>
+
+</div>
+
+<script>
+/* =============== 診断ロジック（ログイン不要で動作） =============== */
+const $ = id => document.getElementById(id);
+const show = (el, on) => { el.style.display = on ? '' : 'none'; };
+let isGuest = false;
+
+function showScreen(name){
+  $('authScreen').classList.toggle('active', name === 'auth');
+  $('appScreen').classList.toggle('active', name === 'app');
+}
+function showPage(name){
+  show($('pageMy'), name === 'my');
+  show($('pageList'), name === 'list');
+  $('navMy').classList.toggle('active', name === 'my');
+  $('navList').classList.toggle('active', name === 'list');
+}
+function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* --- ゲストモード --- */
+$('guestBtn').addEventListener('click', () => {
+  isGuest = true;
+  showScreen('app');
+  showPage('my');
+  $('meName').textContent = 'ゲスト';
+  $('navLogout').textContent = 'ログイン画面へ';
+  $('mascotMsg').textContent = 'お試しモードだよ！診断はできるけど、結果の保存と生徒一覧はログインしたら使えるようになるよ。';
+});
+
+/* --- タブ切り替え --- */
+$('tabLogin').addEventListener('click', () => {
+  $('tabLogin').classList.add('active'); $('tabRegister').classList.remove('active');
+  show($('loginForm'), true); show($('registerForm'), false);
+});
+$('tabRegister').addEventListener('click', () => {
+  $('tabRegister').classList.add('active'); $('tabLogin').classList.remove('active');
+  show($('registerForm'), true); show($('loginForm'), false);
+});
+
+/* --- ナビ --- */
+$('navMy').addEventListener('click', () => {
+  showPage('my');
+  if(window.fb && window.fb.me){ window.fb.backToMyResult(); }
+});
+$('navList').addEventListener('click', () => {
+  if(isGuest || !(window.fb && window.fb.me)){
+    alert('生徒一覧はログインすると使えるよ！');
+    return;
+  }
+  showPage('list');
+});
+$('navLogout').addEventListener('click', () => {
+  if(isGuest || !(window.fb && window.fb.me)){
+    isGuest = false;
+    $('navLogout').textContent = 'ログアウト';
+    showScreen('auth');
+    return;
+  }
+  window.fb.logout();
+});
+
+function fillForm(inputs){
+  $('current').value = inputs.current;
+  $('target').value = inputs.target;
+  $('posts').value = inputs.posts;
+  $('genre').value = inputs.genre;
+  $('weekdayFree').value = inputs.weekdayFree;
+  $('weekendFree').value = inputs.weekendFree;
+  $('wake').value = inputs.wake;
+  $('sleep').value = inputs.sleep;
+  $('prep').value = inputs.prepMinutes;
+  $('live').value = inputs.live;
+}
+
+function toMinutes(hhmm){ const [h,m] = hhmm.split(':').map(Number); return h*60+m; }
+function toTimeStr(mins){
+  mins = ((mins % 1440) + 1440) % 1440;
+  const h = Math.floor(mins/60), m = Math.round(mins%60);
+  return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+}
+const addHours = (t,h) => toTimeStr(toMinutes(t) + h*60);
+const subHours = (t,h) => toTimeStr(toMinutes(t) - h*60);
+
+$('form').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const inputs = {
+    current: parseFloat($('current').value),
+    target: parseFloat($('target').value),
+    posts: parseFloat($('posts').value),
+    genre: $('genre').value,
+    weekdayFree: parseFloat($('weekdayFree').value),
+    weekendFree: parseFloat($('weekendFree').value),
+    wake: $('wake').value,
+    sleep: $('sleep').value,
+    prepMinutes: parseFloat($('prep').value),
+    live: $('live').value
+  };
+  const errorEl = $('error');
+  const nums = [inputs.current, inputs.target, inputs.posts, inputs.weekdayFree, inputs.weekendFree, inputs.prepMinutes];
+  if(nums.some(n => isNaN(n) || n < 0) || !inputs.wake || !inputs.sleep || !inputs.genre || !inputs.live){
+    errorEl.textContent = 'すべての項目に正しい数値を入力してください。';
+    errorEl.style.display = 'block';
+    $('results').style.display = 'none';
+    return;
+  }
+  errorEl.style.display = 'none';
+  renderDiagnosis(inputs, { readOnly:false });
+  if(!isGuest && window.fb && window.fb.me){
+    try{ await window.fb.saveMyResult(inputs); }
+    catch(err){ console.error('保存エラー', err); }
+  }
+});
+
+function renderDiagnosis(inputs, opts){
+  const { current, target, posts, genre, weekdayFree, weekendFree, wake, sleep, prepMinutes, live } = inputs;
+
+  const gap = target - current;
+  const growthRate = current > 0 ? (gap / current) * 100 : (target > 0 ? Infinity : 0);
+  const weeklyGain = gap / 52;
+  const monthlyGain = gap / 12;
+  const yearlyPosts = posts * 52;
+  const gainPerPost = yearlyPosts > 0 ? gap / yearlyPosts : null;
+
+  const fmt = n => Math.round(n).toLocaleString('ja-JP');
+  const growthLabel = growthRate === Infinity ? '算出不可' : (growthRate >= 0 ? '+' + growthRate.toFixed(0) + '%' : growthRate.toFixed(0) + '%');
+
+  $('statRow').innerHTML = `
+    <div class="stat"><div class="label pixel">必要EXP（増加数）</div><div class="value num hp">${gap >= 0 ? '+' : ''}${fmt(gap)}</div></div>
+    <div class="stat"><div class="label pixel">レベルアップ倍率（年間）</div><div class="value num hp">${growthLabel}</div></div>
+    <div class="stat"><div class="label pixel">週間EXP目標</div><div class="value num exp">${fmt(weeklyGain)}人</div></div>
+    <div class="stat"><div class="label pixel">月間EXP目標</div><div class="value num exp">${fmt(monthlyGain)}人</div></div>
+  `;
+
+  let html = '';
+  for(let q=0; q<=4; q++){
+    const value = current + gap * (q/4);
+    const label = q===0 ? '現在' : (q===4 ? '12ヶ月後' : q*3 + 'ヶ月後');
+    const cls = q===0 ? 'now' : (q===4 ? 'goal' : '');
+    html += `<div class="station ${cls}"><div class="when pixel">${label}</div><div class="who num">${fmt(value)}</div></div>`;
+  }
+  $('stations').innerHTML = html;
+
+  let adviceHtml = '';
+  const effectiveGrowth = growthRate === Infinity ? 999 : growthRate;
+
+  if(current === 0 || posts === 0){
+    adviceHtml += `<div class="advice-card"><div class="tag pixel">Lv.0 スタート地点をつくる</div>投稿ゼロ、またはフォロワー0からのスタートは、まず<b>週3〜4本の投稿を4週間継続</b>し、アルゴリズムに評価される土台を作ることが最優先だよ。</div>`;
+  }
+
+  let recommendedPosts;
+  if(effectiveGrowth < 50){ recommendedPosts = posts; }
+  else if(effectiveGrowth < 100){ recommendedPosts = Math.ceil(posts * 1.5); }
+  else if(effectiveGrowth < 300){ recommendedPosts = Math.ceil(posts * 2); }
+  else { recommendedPosts = Math.max(Math.ceil(posts * 2.5), 7); }
+  recommendedPosts = Math.max(recommendedPosts, posts, 1);
+
+  let tag, body;
+  if(effectiveGrowth < 50){
+    tag = 'Lv.1 現状維持で到達圏内';
+    body = `目標までの伸び率は比較的穏やかだよ。投稿本数は<b>週${posts}本</b>を維持しつつ、保存・シェアされやすい投稿の「質」を上げることに時間を使おう。`;
+  } else if(effectiveGrowth < 100){
+    tag = 'Lv.2 ペースアップが必要';
+    body = `週${posts}本のままだと到達がやや厳しいペースだよ。<b>週${recommendedPosts}本</b>を目安に増やし、伸びている投稿フォーマットを分析して型化しよう。`;
+  } else if(effectiveGrowth < 300){
+    tag = 'Lv.3 積極投稿フェーズ';
+    body = `目標までの距離が大きく、投稿頻度を<b>週${recommendedPosts}本</b>まで引き上げる必要があるよ。フィード投稿だけでなく、リール・ショート動画など拡散力のあるフォーマットの比率を増やすのが有効だよ。`;
+  } else {
+    tag = 'Lv.4 本気の積み上げが必要';
+    body = `現在のペースとの差が非常に大きいから、<b>週${recommendedPosts}本以上（ほぼ毎日）</b>の投稿と、企画力・バズ施策の掛け合わせが前提になるよ。1人で抱えず、スクールの添削・企画サポートを積極的に活用しよう。`;
+  }
+  adviceHtml += `<div class="advice-card"><div class="tag pixel">${tag}</div>${body}</div>`;
+
+  if(gainPerPost !== null && isFinite(gainPerPost) && gainPerPost > 0){
+    adviceHtml += `<div class="advice-card"><div class="tag pixel">参考値</div>現在の投稿ペースのまま1年続けた場合、<b>投稿1本あたり平均${gainPerPost.toFixed(1)}人</b>のフォロワー増加が必要な計算になるよ。</div>`;
+  }
+
+  const genreTips = {
+    '美容コース':'ビフォーアフターや「正直レビュー」が保存されやすいジャンルだよ。撮影日は自然光の入る時間帯を確保して、まとめ撮りしよう。',
+    'ペットコース':'日常の何気ない瞬間が最大の武器。毎日短時間の撮影習慣をつけて素材をストックし、編集日にまとめて仕上げよう。',
+    'フィットネスコース':'変化の記録(経過報告)がフォローの最大の動機になるよ。週1の記録投稿を固定枠にして、トレーニング動画と交互に出そう。',
+    'おもしろエンタメ':'最初の1秒のツカミが命のジャンル。企画のストックを常に10本以上持っておくと、撮影日の効率が大きく上がるよ。',
+    '街中インタビューコース':'1回のロケで5〜10本分の素材が撮れるジャンルだよ。撮影クエストの日にまとめてロケして、平日は編集に集中しよう。',
+    '料理コース':'手順を短くテンポよく見せる構成が伸びやすいよ。撮影日に2〜3品まとめて調理・撮影すると効率的。',
+    'ダンスコース':'流行りの音源をいち早く使うのが攻略の鍵。毎日のトレンドチェックをスケジュールの分析時間に組み込もう。',
+    'ミュージシャンコース':'1曲から「サビだけ」「弾いてみた」「制作裏側」など複数の切り口で投稿を量産できるよ。1素材多展開を意識しよう。',
+    'VLOG旅行':'投稿頻度が落ちやすいジャンルだから、1回の旅行から5〜10本に小分けして出すのがコツだよ。',
+    'カップル、ファミリー':'共感がバズの源泉。日常の「あるある」をメモする習慣をつけて、企画ストックを切らさないようにしよう。',
+    'ゲーム実況':'切り抜き文化と相性抜群。長尺プレイから見どころを切り出す編集時間を多めに確保しよう。',
+    'ライブ配信':'配信は「予告」が命。配信前日に告知投稿を入れる流れをスケジュールに固定しよう。配信アーカイブの切り抜きも投稿素材になるよ。',
+    'ドッキリ検証':'企画の仕込みに時間がかかるジャンルだから、撮影クエストの日は長めに確保して2〜3本まとめ撮りしよう。',
+    '社員インフルエンサー':'会社の日常や裏側の「リアル」が刺さるジャンル。業務時間内に撮れる素材を意識して、無理のないペースで続けよう。',
+    '社長コース':'発信の一貫性と信頼が資産になるジャンルだよ。台本作成の時間を制作時間に含めて、価値提供型の投稿を軸にしよう。'
+  };
+  if(genreTips[genre]){
+    adviceHtml += `<div class="advice-card"><div class="tag pixel">ジャンル攻略：${genre}</div>${genreTips[genre]}</div>`;
+  }
+
+  const liveTips = {
+    weekly2:'週2回の配信、いいペースだね！配信は「同じ曜日・同じ時間」の固定が伸びる最大のコツ。スケジュールでは水・土に配信枠を入れたよ。アーカイブの切り抜きも投稿素材にしよう。',
+    weekly1:'週1回の配信を継続できているのは大きな強み！まずは土曜の配信枠を固定して、慣れてきたら週2回に増やしていこう。配信前日の告知投稿も忘れずに。',
+    start:'これから配信デビューだね！最初は週1回・30分〜1時間でOK。スケジュールでは土曜に配信枠を入れたよ。RPGアカデミーのTikTok配信の授業で学んだことをすぐ実践しよう。',
+    no:'今は投稿に集中する作戦だね。フォロワーが増えてきたら、ファンとの距離を縮める武器としてライブ配信も検討してみてね。'
+  };
+  if(liveTips[live]){
+    adviceHtml += `<div class="advice-card"><div class="tag pixel">ライブ配信</div>${liveTips[live]}</div>`;
+  }
+  $('adviceBox').innerHTML = adviceHtml;
+
+  const dows = ['月','火','水','木','金','土','日'];
+  const isWeekend = i => i===5 || i===6;
+  const freeOf = i => isWeekend(i) ? weekendFree : weekdayFree;
+  const totalFree = dows.reduce((sum,_,i) => sum + freeOf(i), 0);
+  const prepHoursTotal = recommendedPosts * (prepMinutes/60);
+
+  const shootDayCount = prepHoursTotal <= 2 ? 1 : (recommendedPosts >= 5 ? 2 : 1);
+  const byFreeDesc = dows.map((d,i)=>i).sort((a,b)=> freeOf(b) - freeOf(a));
+  const shootDays = byFreeDesc.slice(0, shootDayCount);
+
+  const postDaySet = new Set();
+  const n = Math.min(Math.round(recommendedPosts), 7);
+  for(let k=0; k<n; k++) postDaySet.add(Math.floor(k * 7 / Math.max(n,1)));
+
+  let reviewDay = 6;
+  if(shootDays.includes(reviewDay)) reviewDay = dows.map((d,i)=>i).find(i => !shootDays.includes(i));
+
+  const liveDaySet = new Set();
+  if(live === 'weekly2'){ liveDaySet.add(2); liveDaySet.add(5); }
+  else if(live === 'weekly1' || live === 'start'){ liveDaySet.add(5); }
+
+  const dayPlans = dows.map((label, i) => {
+    const tasks = [];
+    const free = freeOf(i);
+    const isAcademyDay = (i === 1 || i === 4);
+
+    if(isAcademyDay){
+      tasks.push({ cls:'academy', time:'22:00〜23:00', text:'RPGアカデミー授業' });
+    }
+    if(liveDaySet.has(i)){
+      const start = isAcademyDay ? subHours('22:00', 1.5) : subHours(sleep, 2);
+      tasks.push({ cls:'live', time:`${start}〜${addHours(start,1)}`, text:'ライブ配信' });
+    }
+    if(shootDays.includes(i)){
+      const dur = Math.min(free, prepHoursTotal / shootDayCount);
+      const start = isWeekend(i) ? addHours(wake, 1) : subHours(sleep, Math.max(dur,0.5));
+      tasks.push({ cls:'shoot', time:`${start}〜${addHours(start, Math.max(dur,0.5))}`, text:`撮影・編集クエスト：${Math.max(dur,0.5).toFixed(1)}h` });
+    }
+    if(postDaySet.has(i)){
+      const start = subHours(sleep, 1);
+      tasks.push({ cls:'post', time:`${start}〜${addHours(start,0.5)}`, text:'投稿ミッション' });
+    }
+    if(i === reviewDay){
+      const start = isWeekend(i) ? addHours(wake, shootDays.includes(i) ? 3 : 1) : subHours(sleep,1.5);
+      tasks.push({ cls:'review', time:`${start}〜${addHours(start,0.5)}`, text:'ステータス確認（分析）' });
+    }
+    if(tasks.length === 0) tasks.push({cls:'', time:'', text:'休息（HP回復）'});
+    const isRest = tasks.length === 1 && tasks[0].cls === '';
+    return {label, free, isRest, tasks};
+  });
+
+  $('weekGrid').innerHTML = dayPlans.map(d => `
+    <div class="day-card ${d.isRest ? 'rest' : ''}">
+      <div class="dow pixel">${d.label}</div>
+      <div class="free">自由時間 ${d.free}h</div>
+      ${d.tasks.map(t => `<div class="task ${t.cls}">${t.time ? `<span class="t-time">${t.time}</span>` : ''}${t.text}</div>`).join('')}
+    </div>
+  `).join('');
+
+  if(prepHoursTotal > totalFree){
+    $('scheduleWarn').innerHTML = `<div class="warn-card">⚠ 必要な制作時間（週${prepHoursTotal.toFixed(1)}h）が、申告いただいた自由時間の合計（週${totalFree.toFixed(1)}h）を上回っているよ。投稿本数を減らすか、1投稿の制作時間を短縮する（テンプレ化・時短編集）ことを検討しよう。</div>`;
+  } else {
+    $('scheduleWarn').innerHTML = '';
+  }
+
+  const liveBoost = live === 'weekly2' ? 1.4 : (live === 'weekly1' ? 1.3 : (live === 'start' ? 1.2 : 1.0));
+  const boostedGap = Math.max(gap, 0) * liveBoost;
+  const actionSeries = [current, current + boostedGap];
+  {
+    let lastGain = boostedGap;
+    for(let y=2; y<=3; y++){
+      lastGain = lastGain * 0.7;
+      actionSeries.push(actionSeries[y-1] + lastGain);
+    }
+  }
+  const idleRate = posts > 0 ? 1.05 : 1.0;
+  const idleSeries = [current];
+  for(let y=1; y<=3; y++) idleSeries.push(idleSeries[y-1] * idleRate);
+
+  {
+    const W=500, H=260, padL=64, padR=20, padT=26, padB=34;
+    const maxV = Math.max(...actionSeries, ...idleSeries, 1);
+    const xs = i => padL + (W-padL-padR) * (i/3);
+    const ys = v => padT + (H-padT-padB) * (1 - v/maxV);
+    const xLabels = ['現在','1年後','2年後','3年後'];
+    let svg = '';
+    for(let g=0; g<=4; g++){
+      const v = maxV * g/4, y = ys(v);
+      svg += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#e0e4ee" stroke-width="1"/>`;
+      svg += `<text x="${padL-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#5c5c5c" font-family="Space Grotesk,sans-serif">${Math.round(v).toLocaleString('ja-JP')}</text>`;
+    }
+    xLabels.forEach((lb,i)=>{
+      svg += `<text x="${xs(i)}" y="${H-10}" text-anchor="middle" font-size="11" fill="#5c5c5c" font-family="DotGothic16,sans-serif">${lb}</text>`;
+    });
+    const line = (series, color, dash) =>
+      `<polyline points="${series.map((v,i)=>`${xs(i)},${ys(v)}`).join(' ')}" fill="none" stroke="${color}" stroke-width="3" ${dash?`stroke-dasharray="6 5"`:''} stroke-linejoin="round" stroke-linecap="round"/>` +
+      series.map((v,i)=>`<circle cx="${xs(i)}" cy="${ys(v)}" r="4.5" fill="#fff" stroke="${color}" stroke-width="3"/>`).join('');
+    svg += line(idleSeries, '#9a9a9a', true);
+    svg += line(actionSeries, '#2f6fed', false);
+    svg += `<text x="${xs(3)}" y="${ys(actionSeries[3])-12}" text-anchor="end" font-size="13" font-weight="700" fill="#2f6fed" font-family="Space Grotesk,sans-serif">${Math.round(actionSeries[3]).toLocaleString('ja-JP')}</text>`;
+    svg += `<text x="${xs(3)}" y="${ys(idleSeries[3])+18}" text-anchor="end" font-size="12" fill="#9a9a9a" font-family="Space Grotesk,sans-serif">${Math.round(idleSeries[3]).toLocaleString('ja-JP')}</text>`;
+    $('futureChart').innerHTML = svg;
+  }
+
+  const diff3y = Math.max(Math.round(actionSeries[3] - idleSeries[3]), 0);
+  const boostNote = liveBoost > 1
+    ? `ライブ配信の効果でフォロワー獲得は<b>${liveBoost}倍</b>で計算しているよ。`
+    : `もしライブ配信を取り入れると、フォロワー獲得は<b>1.2〜1.4倍</b>に増えるから、さらに上を目指せるよ。`;
+  $('futureComment').innerHTML = `
+    <div class="advice-card">
+      <div class="tag pixel">しずくAI先生より</div>
+      3年後、行動したあなたと行動しなかったあなたの差は<b>約${diff3y.toLocaleString('ja-JP')}人</b>。${boostNote}この差を作るのは、今日からの1週間の積み重ねだよ。※2年目以降は1年目の伸びの勢いが続く想定の目安値です。
+    </div>`;
+
+  $('results').style.display = 'block';
+  if(!opts.readOnly){
+    $('viewingBanner').style.display = 'none';
+  }
+}
+</script>
+
+<script type="module">
+/* =====================================================================
+   ▼▼▼ 初期設定：ここにFirebaseの設定を貼り付け ▼▼▼
+   Firebaseコンソール → プロジェクトの設定 → マイアプリ(ウェブ) で表示される
+   firebaseConfig の中身に置き換えてください。
+===================================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDLUPQSwHeRSvd57ukzpSxL76qBi7eXXOY",
+  authDomain: "academy-57f15.firebaseapp.com",
+  projectId: "academy-57f15",
+  storageBucket: "academy-57f15.firebasestorage.app",
+  messagingSenderId: "147728131417",
+  appId: "1:147728131417:web:395932814d7a093c5f1848",
+  measurementId: "G-Z0F1S46V53"
+};
+/* ▲▲▲ ここまで ▲▲▲ */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged, updateProfile
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, getDoc, updateDoc,
+  collection, onSnapshot, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+document.getElementById('previewNotice').style.display = 'none';
+const configured = firebaseConfig.apiKey !== "ここにFirebaseの設定を貼り付け";
+if(!configured){
+  document.getElementById('setupWarn').style.display = 'block';
+}
+
+let app, auth, db, heartbeatTimer = null, unsubUsers = null;
+window.fb = { me: null };
+if(configured){
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
+
+const authMsg = (code) => {
+  const map = {
+    'auth/email-already-in-use':'このメールアドレスはすでに登録されています。「ログイン」からどうぞ。',
+    'auth/invalid-email':'メールアドレスの形式が正しくありません。',
+    'auth/weak-password':'パスワードは6文字以上にしてください。',
+    'auth/invalid-credential':'メールアドレスかパスワードが違います。',
+    'auth/user-not-found':'このメールアドレスは登録されていません。',
+    'auth/wrong-password':'パスワードが違います。',
+    'auth/too-many-requests':'試行回数が多すぎます。しばらく待ってからお試しください。'
+  };
+  return map[code] || 'エラーが発生しました。時間をおいて再度お試しください。（' + code + '）';
+};
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById('regError'); errEl.style.display = 'none';
+  if(!configured){ errEl.textContent = 'システムの初期設定（Firebase）がまだ完了していません。'; errEl.style.display = 'block'; return; }
+  const name = document.getElementById('regName').value.trim();
+  if(!name){ errEl.textContent = '名前を入力してください。'; errEl.style.display = 'block'; return; }
+  try{
+    const cred = await createUserWithEmailAndPassword(auth, document.getElementById('regEmail').value.trim(), document.getElementById('regPass').value);
+    await updateProfile(cred.user, { displayName: name });
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      name, isOnline: true, lastActiveAt: serverTimestamp(), hasResult: false, createdAt: serverTimestamp()
+    });
+  }catch(err){
+    errEl.textContent = authMsg(err.code); errEl.style.display = 'block';
+  }
+});
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById('loginError'); errEl.style.display = 'none';
+  if(!configured){ errEl.textContent = 'システムの初期設定（Firebase）がまだ完了していません。'; errEl.style.display = 'block'; return; }
+  try{
+    await signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value.trim(), document.getElementById('loginPass').value);
+  }catch(err){
+    errEl.textContent = authMsg(err.code); errEl.style.display = 'block';
+  }
+});
+
+window.fb.logout = async () => {
+  if(!configured) return;
+  try{
+    if(window.fb.me) await updateDoc(doc(db, 'users', window.fb.me.uid), { isOnline: false, lastActiveAt: serverTimestamp() });
+  }catch(_){}
+  clearInterval(heartbeatTimer);
+  await signOut(auth);
+};
+
+window.fb.saveMyResult = async (inputs) => {
+  const me = window.fb.me;
+  if(!me) return;
+  await setDoc(doc(db, 'results', me.uid), {
+    inputs, name: me.displayName || 'ぼうけんしゃ', updatedAt: serverTimestamp()
+  });
+  await updateDoc(doc(db, 'users', me.uid), { hasResult: true, lastActiveAt: serverTimestamp() });
+};
+
+async function loadMyResult(){
+  const me = window.fb.me;
+  if(!me) return;
+  try{
+    const snap = await getDoc(doc(db, 'results', me.uid));
+    if(snap.exists()){
+      const inputs = snap.data().inputs;
+      fillForm(inputs);
+      renderDiagnosis(inputs, { readOnly:false });
+    }
+  }catch(_){}
+}
+
+async function viewStudent(uid){
+  try{
+    const snap = await getDoc(doc(db, 'results', uid));
+    if(!snap.exists()){ alert('結果が見つかりませんでした。'); return; }
+    const data = snap.data();
+    showPage('my');
+    show($('formPanel'), false);
+    const banner = $('viewingBanner');
+    banner.innerHTML = `👀 <b>${escapeHtml(data.name)}</b> さんの診断結果を見ています（閲覧のみ） <button id="backToMine" type="button" style="margin-left:10px;font-family:'DotGothic16',sans-serif;font-size:12px;border:2px solid var(--ink);background:#fff;border-radius:2px;padding:4px 10px;cursor:pointer;">じぶんの画面に戻る</button>`;
+    banner.style.display = 'block';
+    renderDiagnosis(data.inputs, { readOnly:true });
+    document.getElementById('backToMine').addEventListener('click', window.fb.backToMyResult);
+    window.scrollTo({top:0, behavior:'smooth'});
+  }catch(err){
+    alert('結果の読み込みに失敗しました。');
+  }
+}
+
+window.fb.backToMyResult = () => {
+  show($('formPanel'), true);
+  $('viewingBanner').style.display = 'none';
+  $('results').style.display = 'none';
+  loadMyResult();
+};
+
+function subscribeUsers(){
+  if(unsubUsers) unsubUsers();
+  unsubUsers = onSnapshot(collection(db, 'users'), (qs) => {
+    const now = Date.now();
+    const rows = [];
+    qs.forEach(d => {
+      const u = d.data();
+      const last = u.lastActiveAt?.toMillis ? u.lastActiveAt.toMillis() : 0;
+      const online = u.isOnline && (now - last) < 5 * 60 * 1000;
+      rows.push({ uid: d.id, name: u.name || '（無名）', online, hasResult: !!u.hasResult, last });
+    });
+    rows.sort((a,b) => (b.online - a.online) || (b.last - a.last));
+    $('studentList').innerHTML = rows.map(r => `
+      <div class="student-row" data-uid="${r.uid}" data-has="${r.hasResult ? 1 : 0}">
+        <span class="status-dot ${r.online ? 'on' : 'off'}"></span>
+        <span class="s-name">${escapeHtml(r.name)}</span>
+        ${window.fb.me && r.uid === window.fb.me.uid ? '<span class="s-me">じぶん</span>' : ''}
+        ${r.hasResult ? '<span class="s-status">📋 結果あり</span>' : '<span class="s-noresult">まだ診断していません</span>'}
+      </div>
+    `).join('') || '<div style="font-size:13px;color:var(--text-dim);">まだ誰も登録していません。</div>';
+    document.querySelectorAll('.student-row').forEach(row => {
+      row.addEventListener('click', () => {
+        if(row.dataset.has !== '1'){ alert('この生徒はまだ診断結果を保存していません。'); return; }
+        viewStudent(row.dataset.uid);
+      });
+    });
+  });
+}
+
+if(configured){
+  onAuthStateChanged(auth, async (user) => {
+    window.fb.me = user;
+    if(user){
+      showScreen('app');
+      showPage('my');
+      $('meName').textContent = user.displayName || 'ぼうけんしゃ';
+      $('navLogout').textContent = 'ログアウト';
+      $('mascotMsg').textContent = '今のステータスを入力してくれれば、1年後のゴールまでの道のりと、毎週やるべきことを全部教えてあげるね。結果は保存されて、他の仲間も見られるよ！';
+      const meRef = doc(db, 'users', user.uid);
+      const snap = await getDoc(meRef);
+      if(!snap.exists()){
+        await setDoc(meRef, { name: user.displayName || 'ぼうけんしゃ', isOnline:true, lastActiveAt: serverTimestamp(), hasResult:false, createdAt: serverTimestamp() });
+      }else{
+        await updateDoc(meRef, { isOnline: true, lastActiveAt: serverTimestamp() });
+      }
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = setInterval(() => {
+        updateDoc(meRef, { lastActiveAt: serverTimestamp() }).catch(()=>{});
+      }, 60000);
+      loadMyResult();
+      subscribeUsers();
+    }else{
+      clearInterval(heartbeatTimer);
+      if(unsubUsers){ unsubUsers(); unsubUsers = null; }
+      // ゲストモード中はログイン画面に戻さない
+      if(!document.getElementById('appScreen').classList.contains('active') || $('meName').textContent !== 'ゲスト'){
+        showScreen('auth');
+      }
+    }
+  });
+  window.addEventListener('pagehide', () => {
+    if(window.fb.me) updateDoc(doc(db, 'users', window.fb.me.uid), { isOnline:false }).catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
