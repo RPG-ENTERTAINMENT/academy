@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="./coi-serviceworker.js"></script>
 <title>自動動画カット&字幕生成ソフト</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Kosugi+Maru&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -323,8 +324,21 @@
 </div>
 
 <script>
+  // Some browsers (iOS Safari, and any host without COOP/COEP headers like GitHub Pages)
+  // don't expose SharedArrayBuffer. The single-thread ffmpeg-core build doesn't actually
+  // need real shared memory, it just checks the constructor exists — so a plain shim is safe.
+  if (typeof window.SharedArrayBuffer === 'undefined') {
+    window.SharedArrayBuffer = window.ArrayBuffer;
+  }
+</script>
+<script>
 const { createFFmpeg, fetchFile } = FFmpeg;
-const ffmpeg = createFFmpeg({ log: false, corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.11.0/ffmpeg-core.js' });
+// SharedArrayBufferが使える環境(cross-origin isolated)ではマルチスレッド版、
+// 使えない環境(GitHub Pages / iPhone Safari等)ではシングルスレッド版に自動切替
+const hasSAB = (typeof SharedArrayBuffer !== 'undefined');
+const ffmpeg = hasSAB
+  ? createFFmpeg({ log: false, corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.11.0/ffmpeg-core.js' })
+  : createFFmpeg({ log: false, mainName: 'main', corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js' });
 let ffmpegLoaded = false;
 let ffmpegLogBuffer = [];
 ffmpeg.setLogger(({type, message}) => { ffmpegLogBuffer.push(message); });
