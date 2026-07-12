@@ -219,7 +219,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v1.6</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v1.7</span></small></div>
 </div>
 
 <div class="layout">
@@ -358,12 +358,13 @@ async function initFFmpeg(){
   if (ffmpeg) return;
   const f = new FFmpegWASM.FFmpeg();
   f.on('log', ({message}) => { ffmpegLogBuffer.push(message); });
-  // 0.12系はワーカーがモジュール型のため、コアはESM版を使う必要がある
+  // iPhone Safariはワーカー内でblobモジュールのimport不可のため、コアはCDNのURLを直接指定する
+  // (classWorkerURLのみblob化: ワーカー生成はsame-origin制約があるため)
   const coreBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
   const umdBase  = 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.12.15/umd';
   await f.load({
-    coreURL: await toBlobURL(coreBase + '/ffmpeg-core.js', 'text/javascript'),
-    wasmURL: await toBlobURL(coreBase + '/ffmpeg-core.wasm', 'application/wasm'),
+    coreURL: coreBase + '/ffmpeg-core.js',
+    wasmURL: coreBase + '/ffmpeg-core.wasm',
     classWorkerURL: await toBlobURL(umdBase + '/814.ffmpeg.js', 'text/javascript'),
   });
   ffmpeg = f;
