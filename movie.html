@@ -135,7 +135,7 @@
     background:rgba(6,12,18,var(--cap-bg,.72));color:var(--cap-color,#fff);padding:8px 18px;border-radius:8px;
     font-size:calc(16px * var(--cap-scale,1));font-weight:500;
     text-align:center;max-width:100%;line-height:1.5;border:1px solid rgba(45,216,198,.25);
-    font-family:var(--cap-font);
+    font-family:var(--cap-font);text-shadow:var(--cap-shadow,none);
   }
   .emph{font-size:1.55em;font-weight:900;color:var(--emph-color,var(--amber));display:inline-block;line-height:1.2;}
 
@@ -195,15 +195,23 @@
     padding:0 12px;cursor:pointer;font-size:12px;flex:none;}
   .font-apply:hover{border-color:var(--teal);color:var(--teal);}
   .font-preview-label{font-size:11px;color:var(--text-dim);}
-  .font-preview{
-    background:#000;border-radius:10px;border:1px solid var(--line);
-    padding:18px 12px;display:flex;justify-content:center;align-items:center;
+  .aspect-toggle{display:flex;gap:8px;}
+  .ar-btn{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text-dim);border-radius:8px;
+    padding:7px 4px;font-size:11.5px;cursor:pointer;transition:.15s;}
+  .ar-btn:hover{border-color:var(--teal);}
+  .ar-btn.active{border-color:var(--teal);background:#123531;color:var(--teal);}
+  .pos-editor{position:relative;background:#000;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:0 auto;}
+  .pos-editor.wide{width:100%;aspect-ratio:16/9;}
+  .pos-editor.tall{height:320px;aspect-ratio:9/16;}
+  .pos-editor .box{
+    position:absolute;left:50%;transform:translateX(-50%);bottom:var(--cap-bottom,6%);
+    background:rgba(6,12,18,var(--cap-bg,.72));color:var(--cap-color,#fff);padding:6px 12px;border-radius:8px;
+    font-size:calc(12px * var(--cap-scale,1));font-weight:500;text-align:center;line-height:1.5;
+    border:1px dashed rgba(45,216,198,.55);font-family:var(--cap-font);text-shadow:var(--cap-shadow,none);
+    cursor:grab;touch-action:none;user-select:-webkit-user-select;user-select:none;-webkit-user-select:none;
+    max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-  .font-preview .box{
-    background:rgba(6,12,18,var(--cap-bg,.72));color:var(--cap-color,#fff);padding:7px 14px;border-radius:8px;
-    font-size:calc(14px * var(--cap-scale,1));font-weight:500;text-align:center;line-height:1.5;
-    border:1px solid rgba(45,216,198,.25);font-family:var(--cap-font);
-  }
+  .pos-editor .box:active{cursor:grabbing;border-style:solid;}
 
   .radio-row{display:flex;flex-direction:column;gap:6px;font-size:12.5px;}
   .radio-row label{display:flex;align-items:center;gap:7px;cursor:pointer;color:var(--text);}
@@ -236,7 +244,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v2.2</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v2.4</span></small></div>
 </div>
 
 <div class="layout">
@@ -312,6 +320,12 @@
         <button type="button" class="font-btn" data-font="DotGothic16" data-color="#d8ffe8" data-bg="80" data-emph="#7cfc00" style="font-family:'DotGothic16';color:#d8ffe8">レトロゲーム</button>
         <button type="button" class="font-btn" data-font="Reggae One" data-color="#ffffff" data-bg="90" data-emph="#ffe600" style="font-family:'Reggae One'">極太見出し</button>
         <button type="button" class="font-btn" data-font="Noto Sans JP" data-color="#ffffff" data-bg="0" data-emph="#ffffff" style="font-family:'Noto Sans JP';font-weight:300">ミニマル</button>
+        <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="0" data-emph="#ffe600" data-outline='[{"w":0.14,"c":"#000000"}]'>黒ぶち定番</button>
+        <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="0" data-emph="#ffe600" data-outline='[{"w":0.13,"c":"#000000"}]' data-shadow="1">黒ぶちシャドウ</button>
+        <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="0" data-emph="#ffe600" data-outline='[{"w":0.09,"c":"#000000"},{"w":0.09,"c":"#c73e3e"}]'>赤ぶち二重</button>
+        <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="0" data-emph="#ffe600" data-outline='[{"w":0.09,"c":"#000000"},{"w":0.09,"c":"#3d9bd8"}]'>青ぶち二重</button>
+        <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="0" data-emph="#ff5252" data-outline='[{"w":0.09,"c":"#000000"},{"w":0.09,"c":"#f2c94c"}]'>黄ぶち二重</button>
+        <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#111111" data-bg="0" data-emph="#c73e3e" data-outline='[{"w":0.13,"c":"#ffffff"}]'>白ふち黒文字</button>
       </div>
       <div class="font-custom-row">
         <input type="text" id="customFont" placeholder="Googleフォント名（例: M PLUS 1p）">
@@ -324,7 +338,7 @@
       </div>
       <div class="slider-row">
         <div class="lbl"><span>表示位置（下からの高さ）</span><b id="capPosVal">6%</b></div>
-        <input type="range" id="capPos" min="2" max="40" value="6" step="1">
+        <input type="range" id="capPos" min="0" max="85" value="6" step="1">
       </div>
       <div class="slider-row">
         <div class="lbl"><span>背景の濃さ</span><b id="capBgVal">72%</b></div>
@@ -334,8 +348,14 @@
         <div class="color-item"><span>文字色</span><input type="color" id="capColor" value="#ffffff"></div>
         <div class="color-item"><span>強調色</span><input type="color" id="emphColor" value="#f3a53d"></div>
       </div>
-      <div class="font-preview-label">プレビュー（実際の字幕の見え方）</div>
-      <div class="font-preview" id="fontPreview"></div>
+      <div class="font-preview-label">プレビュー（字幕をドラッグして位置を調整できます）</div>
+      <div class="aspect-toggle">
+        <button type="button" class="ar-btn active" data-ar="wide">16:9 横型</button>
+        <button type="button" class="ar-btn" data-ar="tall">9:16 縦型</button>
+      </div>
+      <div class="pos-editor wide" id="posEditor">
+        <div class="box" id="posBox"></div>
+      </div>
     </div>
 
     <button class="run-btn" id="runBtn" disabled>自動カット & 字幕生成を開始</button>
@@ -682,9 +702,9 @@ let captionFont = 'Noto Sans JP';
 const fontBtns = document.querySelectorAll('.font-btn');
 const PREVIEW_SAMPLE = '動画編集が**もっと簡単**になります';
 function renderFontPreview(){
-  const p = document.getElementById('fontPreview');
+  const p = document.getElementById('posBox');
   if (!p) return;
-  p.innerHTML = '<div class="box">' + renderEmphHTML(PREVIEW_SAMPLE) + '</div>';
+  p.innerHTML = renderEmphHTML(PREVIEW_SAMPLE);
 }
 function applyCaptionFont(){
   document.documentElement.style.setProperty('--cap-font', `'${captionFont}', sans-serif`);
@@ -700,6 +720,8 @@ fontBtns.forEach(b => b.addEventListener('click', () => {
     capStyle.color = b.dataset.color;
     capStyle.emph = b.dataset.emph;
     capStyle.bg = (+b.dataset.bg) / 100;
+    capStyle.outline = b.dataset.outline ? JSON.parse(b.dataset.outline) : [];
+    capStyle.dropshadow = b.dataset.shadow === '1';
     document.getElementById('capColor').value = capStyle.color;
     document.getElementById('emphColor').value = capStyle.emph;
     const bgEl = document.getElementById('capBg');
@@ -724,8 +746,16 @@ document.getElementById('applyCustomFont').addEventListener('click', () => {
 });
 applyCaptionFont();
 
-// ---------- caption style (size / position / colors / background) ----------
-const capStyle = { scale: 1, bottom: 6, bg: 0.72, color: '#ffffff', emph: '#f3a53d' };
+// ---------- caption style (size / position / colors / background / outline) ----------
+const capStyle = { scale: 1, bottom: 6, bg: 0.72, color: '#ffffff', emph: '#f3a53d', outline: [], dropshadow: false };
+function ringShadow(r, c){
+  const pts = [];
+  for (let a = 0; a < 16; a++){
+    const t = a * Math.PI / 8;
+    pts.push((Math.cos(t)*r).toFixed(3) + 'em ' + (Math.sin(t)*r).toFixed(3) + 'em 0 ' + c);
+  }
+  return pts.join(',');
+}
 function applyCapStyle(){
   const r = document.documentElement.style;
   r.setProperty('--cap-scale', capStyle.scale);
@@ -733,7 +763,28 @@ function applyCapStyle(){
   r.setProperty('--cap-bg', capStyle.bg);
   r.setProperty('--cap-color', capStyle.color);
   r.setProperty('--emph-color', capStyle.emph);
+  const o = capStyle.outline || [];
+  const sh = [];
+  if (o[0]) sh.push(ringShadow(o[0].w, o[0].c));
+  if (o[1]) sh.push(ringShadow(o[0].w + o[1].w, o[1].c));
+  if (capStyle.dropshadow) sh.push('0.09em 0.09em 0 rgba(0,0,0,.45)');
+  r.setProperty('--cap-shadow', sh.length ? sh.join(',') : 'none');
 }
+// 縁取りプリセットのボタン自体にも縁取りの見た目を反映
+fontBtns.forEach(b => {
+  if (b.dataset.outline){
+    try{
+      const o = JSON.parse(b.dataset.outline);
+      const sh = [];
+      if (o[0]) sh.push(ringShadow(o[0].w * 0.85, o[0].c));
+      if (o[1]) sh.push(ringShadow((o[0].w + o[1].w) * 0.85, o[1].c));
+      b.style.textShadow = sh.join(',');
+      b.style.color = b.dataset.color;
+      b.style.fontFamily = "'" + b.dataset.font + "'";
+      b.style.fontWeight = '800';
+    }catch(e){}
+  }
+});
 const capSizeEl = document.getElementById('capSize');
 const capPosEl = document.getElementById('capPos');
 const capBgEl = document.getElementById('capBg');
@@ -755,6 +806,36 @@ capBgEl.oninput = () => {
 document.getElementById('capColor').addEventListener('input', e => { capStyle.color = e.target.value; applyCapStyle(); });
 document.getElementById('emphColor').addEventListener('input', e => { capStyle.emph = e.target.value; applyCapStyle(); });
 applyCapStyle();
+
+// ---------- position editor (16:9 / 9:16, drag to move caption) ----------
+const posEditor = document.getElementById('posEditor');
+const posBox = document.getElementById('posBox');
+document.querySelectorAll('.ar-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.ar-btn').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  posEditor.className = 'pos-editor ' + b.dataset.ar;
+}));
+function setBottomPct(v){
+  capStyle.bottom = Math.round(Math.max(0, Math.min(85, v)));
+  capPosEl.value = Math.min(capStyle.bottom, +capPosEl.max);
+  document.getElementById('capPosVal').textContent = capStyle.bottom + '%';
+  applyCapStyle();
+}
+let dragging = false;
+posBox.addEventListener('pointerdown', e => {
+  dragging = true;
+  posBox.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+posBox.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const rect = posEditor.getBoundingClientRect();
+  const boxH = posBox.getBoundingClientRect().height;
+  const pct = ((rect.bottom - e.clientY - boxH/2) / rect.height) * 100;
+  setBottomPct(pct);
+});
+posBox.addEventListener('pointerup', e => { dragging = false; });
+posBox.addEventListener('pointercancel', () => { dragging = false; });
 
 // ---------- step UI ----------
 let currentStage = '';
@@ -1113,12 +1194,35 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
         .replace(/,/g,'\\,').replace(/\[/g,'\\[').replace(/\]/g,'\\]').replace(/%/g,'\\%');
     }
     const hex = h => '0x' + h.replace('#','');
-    const fs = (0.045 * capStyle.scale).toFixed(4);
+    const fspx = Math.max(12, Math.round((videoH || 720) * 0.045 * capStyle.scale));
     const bottomRatio = (capStyle.bottom / 100).toFixed(3);
-    const chain = captions.map(c =>
-      `drawtext=fontfile=/font.ttf:text='${esc(c.text.replace(/\*\*/g,''))}':enable='between(t,${c.start},${c.end})':`+
-      `x=(w-text_w)/2:y=h-th-h*${bottomRatio}:fontsize=h*${fs}:fontcolor=${hex(capStyle.color)}:box=1:boxcolor=black@${capStyle.bg.toFixed(2)}:boxborderw=14`
-    ).join(',');
+    const outline = capStyle.outline || [];
+    const chainParts = [];
+    captions.forEach(c => {
+      const base = `drawtext=fontfile=/font.ttf:text='${esc(c.text.replace(/\*\*/g,''))}':enable='between(t,${c.start},${c.end})':`+
+                   `x=(w-text_w)/2:y=h-th-h*${bottomRatio}:fontsize=${fspx}:fontcolor=${hex(capStyle.color)}`;
+      const layers = [];
+      if (outline.length > 1){
+        const bw2 = Math.max(1, Math.round(fspx * (outline[0].w + outline[1].w)));
+        layers.push(base + `:borderw=${bw2}:bordercolor=${hex(outline[1].c)}`);
+      }
+      if (outline.length > 0){
+        const bw1 = Math.max(1, Math.round(fspx * outline[0].w));
+        layers.push(base + `:borderw=${bw1}:bordercolor=${hex(outline[0].c)}`);
+      } else {
+        layers.push(base);
+      }
+      // 背景ボックス・ドロップシャドウは最下層に付与
+      if (capStyle.bg > 0.02){
+        layers[0] += `:box=1:boxcolor=black@${capStyle.bg.toFixed(2)}:boxborderw=14`;
+      }
+      if (capStyle.dropshadow){
+        const so = Math.max(1, Math.round(fspx * 0.09));
+        layers[0] += `:shadowcolor=black@0.45:shadowx=${so}:shadowy=${so}`;
+      }
+      chainParts.push(...layers);
+    });
+    const chain = chainParts.join(',');
     await ffmpeg.exec(['-i','cut.mp4','-vf', chain, '-c:a','copy','burned.mp4']);
     const out = await ffmpeg.readFile('burned.mp4');
     try{ await ffmpeg.deleteFile('burned.mp4'); }catch(e){}
