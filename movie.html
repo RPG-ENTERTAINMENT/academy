@@ -273,14 +273,23 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v3.5</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v3.7</span></small></div>
 </div>
 
 <div class="layout">
   <div class="side scrollbar-hide">
 
     <div class="block">
-      <div class="block-title"><span class="num">1</span>動画を読み込む</div>
+      <div class="block-title"><span class="num">1</span>使用パスコード（OpenAI APIキー）</div>
+      <input type="password" id="apiKey" placeholder="sk-...">
+      <div class="key-row">
+        <label class="key-toggle"><input type="checkbox" id="saveKeyToggle">次回から自動入力する（この端末に保存）</label>
+        <span class="key-status" id="keyStatus"></span>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title"><span class="num">2</span>動画を読み込む</div>
       <div class="drop" id="drop">
         <input type="file" id="fileInput" accept="video/*">
         <div class="ic">🎬</div>
@@ -292,7 +301,7 @@
     </div>
 
     <div class="block">
-      <div class="block-title"><span class="num">2</span>アイキャッチ動画（任意）</div>
+      <div class="block-title"><span class="num">3</span>アイキャッチ動画（任意）</div>
       <div class="drop" id="eyeDrop">
         <input type="file" id="eyeInput" accept="video/*">
         <div class="ic">✨</div>
@@ -311,7 +320,7 @@
     </div>
 
     <div class="block">
-      <div class="block-title"><span class="num">3</span>番組アイコン（任意）</div>
+      <div class="block-title"><span class="num">4</span>番組アイコン（任意）</div>
       <div class="drop" id="iconDrop">
         <input type="file" id="iconInput" accept="image/*">
         <div class="ic">🏷</div>
@@ -319,6 +328,7 @@
         <div class="t2">動画の四隅に小さく表示するロゴ・アイコン</div>
       </div>
       <div id="iconChip" style="display:none"></div>
+      <img id="iconPreviewImg" class="src-preview" style="object-fit:contain;background:#fafafa;padding:10px;max-height:140px">
       <div class="radio-row" id="iconOpts" style="display:none">
         <div class="corner-grid">
           <label><input type="radio" name="iconCorner" value="tl">左上</label>
@@ -330,15 +340,6 @@
           <div class="lbl"><span>アイコンの大きさ（画面幅比）</span><b id="iconSizeVal">12%</b></div>
           <input type="range" id="iconSize" min="5" max="25" value="12" step="1">
         </div>
-      </div>
-    </div>
-
-    <div class="block">
-      <div class="block-title"><span class="num">4</span>OpenAI APIキー</div>
-      <input type="password" id="apiKey" placeholder="sk-...">
-      <div class="key-row">
-        <label class="key-toggle"><input type="checkbox" id="saveKeyToggle">次回から自動入力する（この端末に保存）</label>
-        <span class="key-status" id="keyStatus"></span>
       </div>
     </div>
 
@@ -821,11 +822,16 @@ function handleIconFile(file){
   iconChip.className = 'file-chip';
   iconChip.innerHTML = `<span class="name">🏷 ${file.name}</span><span class="dur">${fmtSize(file.size)}</span><button class="mini-remove" id="iconRemove" title="アイコンを外す">✕</button>`;
   iconOpts.style.display = 'flex';
+  const ipi = document.getElementById('iconPreviewImg');
+  ipi.src = iconObjectUrl;
+  ipi.style.display = 'block';
   document.getElementById('iconRemove').addEventListener('click', (ev) => {
     ev.stopPropagation();
     iconFile = null;
     iconChip.style.display = 'none';
     iconOpts.style.display = 'none';
+    ipi.style.display = 'none';
+    ipi.removeAttribute('src');
     iconInput.value = '';
     updateIconPreviews();
   });
