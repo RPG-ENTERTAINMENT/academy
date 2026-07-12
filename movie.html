@@ -6,7 +6,7 @@
 <script src="./coi-serviceworker.js"></script>
 <title>自動動画カット&字幕生成ソフト</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Kosugi+Maru&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Kosugi+Maru&family=Shippori+Mincho:wght@600&family=M+PLUS+Rounded+1c:wght@500;800&family=Yusei+Magic&family=DotGothic16&family=RocknRoll+One&family=Reggae+One&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#0c141c;
@@ -183,11 +183,12 @@
   .cap-row .del:hover{color:var(--danger);}
   .cap-row .preview{font-family:var(--cap-font);font-size:12px;color:var(--text-dim);line-height:1.3;}
 
-  .font-presets{display:flex;gap:8px;}
-  .font-btn{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:8px;
-    padding:10px 4px;font-size:12px;cursor:pointer;transition:.15s;text-align:center;}
+  .font-presets{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .font-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+    padding:10px 4px;font-size:12.5px;cursor:pointer;transition:.15s;text-align:center;line-height:1.3;}
   .font-btn:hover{border-color:var(--teal);}
-  .font-btn.active{border-color:var(--teal);background:#123531;color:var(--teal);}
+  .font-btn.active{border-color:var(--teal);background:#123531;}
+  .src-preview{width:100%;max-height:200px;border-radius:10px;border:1px solid var(--line);background:#000;display:none;}
   .font-custom-row{display:flex;gap:6px;}
   .font-custom-row input{flex:1;}
   .font-apply{background:var(--panel-2);border:1px solid var(--line);color:var(--text-dim);border-radius:8px;
@@ -235,7 +236,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v2.0</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v2.1</span></small></div>
 </div>
 
 <div class="layout">
@@ -250,6 +251,7 @@
         <div class="t2">mp4 / mov などの動画ファイル（縦型・横型どちらもOK）</div>
       </div>
       <div id="fileChip" style="display:none"></div>
+      <video id="srcPreview" class="src-preview" controls playsinline></video>
     </div>
 
     <div class="block">
@@ -261,6 +263,7 @@
         <div class="t2">場面転換などに挟む短い動画（サイズは自動調整）</div>
       </div>
       <div id="eyeChip" style="display:none"></div>
+      <video id="eyePreview" class="src-preview" controls playsinline></video>
       <div class="radio-row" id="eyeModeRow" style="display:none">
         <label><input type="radio" name="eyeMode" value="auto" checked>おまかせ（動画の先頭に挿入）</label>
         <label><input type="radio" name="eyeMode" value="manual">位置を自分で指定</label>
@@ -299,9 +302,16 @@
     <div class="block">
       <div class="block-title"><span class="num">5</span>字幕デザイン</div>
       <div class="font-presets" id="fontPresets">
-        <button type="button" class="font-btn active" data-font="Noto Sans JP" style="font-family:'Noto Sans JP'">標準</button>
-        <button type="button" class="font-btn" data-font="Zen Kaku Gothic New" style="font-family:'Zen Kaku Gothic New'">インパクト</button>
-        <button type="button" class="font-btn" data-font="Kosugi Maru" style="font-family:'Kosugi Maru'">まる文字</button>
+        <button type="button" class="font-btn active" data-font="Noto Sans JP" data-color="#ffffff" data-bg="72" data-emph="#f3a53d" style="font-family:'Noto Sans JP'">標準</button>
+        <button type="button" class="font-btn" data-font="Zen Kaku Gothic New" data-color="#ffffff" data-bg="82" data-emph="#ff5252" style="font-family:'Zen Kaku Gothic New';font-weight:900">インパクト</button>
+        <button type="button" class="font-btn" data-font="Kosugi Maru" data-color="#ffffff" data-bg="65" data-emph="#ff8fc7" style="font-family:'Kosugi Maru'">まる文字</button>
+        <button type="button" class="font-btn" data-font="RocknRoll One" data-color="#ffe600" data-bg="85" data-emph="#ff5252" style="font-family:'RocknRoll One';color:#ffe600">バラエティ</button>
+        <button type="button" class="font-btn" data-font="Shippori Mincho" data-color="#ffffff" data-bg="40" data-emph="#e8c56b" style="font-family:'Shippori Mincho'">シネマ</button>
+        <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="70" data-emph="#00e5ff" style="font-family:'M PLUS Rounded 1c';font-weight:800">ポップ</button>
+        <button type="button" class="font-btn" data-font="Yusei Magic" data-color="#ffffff" data-bg="55" data-emph="#ffa94d" style="font-family:'Yusei Magic'">手書き風</button>
+        <button type="button" class="font-btn" data-font="DotGothic16" data-color="#d8ffe8" data-bg="80" data-emph="#7cfc00" style="font-family:'DotGothic16';color:#d8ffe8">レトロゲーム</button>
+        <button type="button" class="font-btn" data-font="Reggae One" data-color="#ffffff" data-bg="90" data-emph="#ffe600" style="font-family:'Reggae One'">極太見出し</button>
+        <button type="button" class="font-btn" data-font="Noto Sans JP" data-color="#ffffff" data-bg="0" data-emph="#ffffff" style="font-family:'Noto Sans JP';font-weight:300">ミニマル</button>
       </div>
       <div class="font-custom-row">
         <input type="text" id="customFont" placeholder="Googleフォント名（例: M PLUS 1p）">
@@ -526,6 +536,9 @@ function handleFile(file){
     fileChip.style.display = 'flex';
     fileChip.className = 'file-chip';
     fileChip.innerHTML = `<span class="name">📄 ${file.name}</span><span class="dur">${fmtTime(videoDuration)} ・ ${fmtSize(file.size)}</span>`;
+    const sp = document.getElementById('srcPreview');
+    sp.src = url;
+    sp.style.display = 'block';
     const et = document.getElementById('eyeTime');
     et.max = Math.floor(videoDuration);
     checkReady();
@@ -552,20 +565,26 @@ eyeInput.addEventListener('change', e => { if (e.target.files[0]) handleEyeFile(
 
 function handleEyeFile(file){
   eyecatchFile = file;
+  const eyeUrl = URL.createObjectURL(file);
   const probe = document.createElement('video');
   probe.preload = 'metadata';
-  probe.src = URL.createObjectURL(file);
+  probe.src = eyeUrl;
   probe.onloadedmetadata = () => {
     eyecatchDuration = probe.duration;
     eyeChip.style.display = 'flex';
     eyeChip.className = 'file-chip';
     eyeChip.innerHTML = `<span class="name">✨ ${file.name}</span><span class="dur">${fmtTime(eyecatchDuration)} ・ ${fmtSize(file.size)}</span><button class="mini-remove" id="eyeRemove" title="アイキャッチを外す">✕</button>`;
+    const ep = document.getElementById('eyePreview');
+    ep.src = eyeUrl;
+    ep.style.display = 'block';
     eyeModeRow.style.display = 'flex';
     document.getElementById('eyeRemove').addEventListener('click', (ev) => {
       ev.stopPropagation();
       eyecatchFile = null; eyecatchDuration = 0;
       eyeChip.style.display = 'none';
       eyeModeRow.style.display = 'none';
+      ep.style.display = 'none';
+      ep.removeAttribute('src'); ep.load();
       eyeInput.value = '';
     });
   };
@@ -676,6 +695,18 @@ fontBtns.forEach(b => b.addEventListener('click', () => {
   b.classList.add('active');
   captionFont = b.dataset.font;
   applyCaptionFont();
+  // デザインプリセットの色・背景も反映し、下の詳細コントロールに同期
+  if (b.dataset.color){
+    capStyle.color = b.dataset.color;
+    capStyle.emph = b.dataset.emph;
+    capStyle.bg = (+b.dataset.bg) / 100;
+    document.getElementById('capColor').value = capStyle.color;
+    document.getElementById('emphColor').value = capStyle.emph;
+    const bgEl = document.getElementById('capBg');
+    bgEl.value = b.dataset.bg;
+    document.getElementById('capBgVal').textContent = b.dataset.bg + '%';
+    applyCapStyle();
+  }
 }));
 document.getElementById('applyCustomFont').addEventListener('click', () => {
   const name = document.getElementById('customFont').value.trim();
