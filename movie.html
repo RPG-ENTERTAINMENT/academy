@@ -236,7 +236,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v2.1</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v2.2</span></small></div>
 </div>
 
 <div class="layout">
@@ -1080,18 +1080,30 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
   const original = btn.textContent;
   btn.disabled = true; btn.textContent = '⏳ フォント準備中…';
   try{
+    const GF = 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/';
     const FONT_FILES = {
-      'Zen Kaku Gothic New': 'https://cdn.jsdelivr.net/gh/googlefonts/zen-kaku-gothic-new/fonts/ttf/ZenKakuGothicNew-Bold.ttf',
-      'Kosugi Maru': 'https://cdn.jsdelivr.net/gh/googlefonts/kosugi-maru/fonts/ttf/KosugiMaru-Regular.ttf'
+      'Noto Sans JP':        [GF+'notosansjp/NotoSansJP%5Bwght%5D.ttf'],
+      'Zen Kaku Gothic New': [GF+'zenkakugothicnew/ZenKakuGothicNew-Bold.ttf', GF+'zenkakugothicnew/ZenKakuGothicNew-Black.ttf'],
+      'Kosugi Maru':         [GF+'kosugimaru/KosugiMaru-Regular.ttf'],
+      'RocknRoll One':       [GF+'rocknrollone/RocknRollOne-Regular.ttf'],
+      'Shippori Mincho':     [GF+'shipporimincho/ShipporiMincho-SemiBold.ttf', GF+'shipporimincho/ShipporiMincho-Bold.ttf'],
+      'M PLUS Rounded 1c':   [GF+'mplusrounded1c/MPLUSRounded1c-Bold.ttf', GF+'mplusrounded1c/MPLUSRounded1c-Black.ttf'],
+      'Yusei Magic':         [GF+'yuseimagic/YuseiMagic-Regular.ttf'],
+      'DotGothic16':         [GF+'dotgothic16/DotGothic16-Regular.ttf'],
+      'Reggae One':          [GF+'reggaeone/ReggaeOne-Regular.ttf'],
     };
     const FALLBACK_FONT_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/kosugi-maru/fonts/ttf/KosugiMaru-Regular.ttf';
     if (window.__cutcapLoadedFont !== captionFont){
       try{ await ffmpeg.deleteFile('font.ttf'); }catch(e){}
-      const url = FONT_FILES[captionFont] || FALLBACK_FONT_URL;
-      let fontResp = await fetch(url);
-      if (!fontResp.ok) fontResp = await fetch(FALLBACK_FONT_URL);
-      if (!fontResp.ok) throw new Error('フォントの取得に失敗しました');
-      const fontBuf = new Uint8Array(await fontResp.arrayBuffer());
+      const candidates = (FONT_FILES[captionFont] || []).concat([FALLBACK_FONT_URL]);
+      let fontBuf = null;
+      for (const u of candidates){
+        try{
+          const r = await fetch(u);
+          if (r.ok){ fontBuf = new Uint8Array(await r.arrayBuffer()); break; }
+        }catch(e){}
+      }
+      if (!fontBuf) throw new Error('フォントの取得に失敗しました');
       await ffmpeg.writeFile('font.ttf', fontBuf);
       window.__cutcapLoadedFont = captionFont;
     }
