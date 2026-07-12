@@ -6,7 +6,7 @@
 <script src="./coi-serviceworker.js"></script>
 <title>自動動画カット&字幕生成ソフト</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Kosugi+Maru&family=Shippori+Mincho:wght@600&family=M+PLUS+Rounded+1c:wght@500;800&family=Yusei+Magic&family=DotGothic16&family=RocknRoll+One&family=Reggae+One&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Kosugi+Maru&family=Shippori+Mincho:wght@600&family=M+PLUS+Rounded+1c:wght@500;800&family=Yusei+Magic&family=DotGothic16&family=RocknRoll+One&family=Reggae+One&family=Zen+Maru+Gothic:wght@500;700&family=Hachi+Maru+Pop&family=Mochiy+Pop+One&family=Rampart+One&family=Train+One&family=Stick&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#0c141c;
@@ -110,6 +110,7 @@
   .step.active .dot{background:var(--amber);animation:pulse 1s infinite;}
   .step.done{color:var(--teal);}
   .step.done .dot{background:var(--teal);}
+  .eta{font-family:'JetBrains Mono';font-size:12.5px;color:var(--amber);min-height:17px;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
 
   .main{padding:26px 30px;display:flex;flex-direction:column;gap:20px;overflow-y:auto;}
@@ -135,7 +136,7 @@
     background:rgba(6,12,18,var(--cap-bg,.72));color:var(--cap-color,#fff);padding:8px 18px;border-radius:8px;
     font-size:calc(16px * var(--cap-scale,1));font-weight:500;
     text-align:center;max-width:100%;line-height:1.5;border:1px solid rgba(45,216,198,.25);
-    font-family:var(--cap-font);text-shadow:var(--cap-shadow,none);
+    font-family:var(--cap-font);text-shadow:var(--cap-shadow,none);white-space:pre-line;
   }
   .emph{font-size:1.55em;font-weight:900;color:var(--emph-color,var(--amber));display:inline-block;line-height:1.2;}
 
@@ -212,6 +213,17 @@
     max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .pos-editor .box:active{cursor:grabbing;border-style:solid;}
+  .my-presets{display:flex;flex-wrap:wrap;gap:7px;}
+  .my-preset{display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:16px;padding:6px 8px 6px 12px;font-size:12px;cursor:pointer;color:var(--text);transition:.15s;}
+  .my-preset:hover{border-color:var(--teal);}
+  .my-preset .x{color:var(--text-dim);font-size:11px;padding:0 3px;}
+  .my-preset .x:hover{color:var(--danger);}
+  .font-select{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:10px 11px;color:var(--text);font-size:13px;font-family:var(--cap-font);
+  }
+  .font-select:focus{outline:none;border-color:var(--teal);}
 
   .radio-row{display:flex;flex-direction:column;gap:6px;font-size:12.5px;}
   .radio-row label{display:flex;align-items:center;gap:7px;cursor:pointer;color:var(--text);}
@@ -244,7 +256,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v2.4</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v2.9</span></small></div>
 </div>
 
 <div class="layout">
@@ -305,10 +317,42 @@
         <div class="lbl"><span>カット時の余白（間を残す）</span><b id="padVal">0.15 秒</b></div>
         <input type="range" id="padding" min="0" max="0.5" value="0.15" step="0.05">
       </div>
+      <div class="radio-row">
+        <label><input type="radio" name="speedMode" value="fast" checked>⚡ 高速（おすすめ・長辺1280pxに変換）</label>
+        <label><input type="radio" name="speedMode" value="fastest">🚀 最速（長辺960px・SNS向け）</label>
+        <label><input type="radio" name="speedMode" value="quality">🎞 画質優先（元のサイズのまま・時間がかかる）</label>
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><span>フレームレート</span></div>
+        <div class="radio-row">
+          <label><input type="radio" name="fpsMode" value="30" checked>30fps（軽くて速い・トーク動画に十分）</label>
+          <label><input type="radio" name="fpsMode" value="60">60fps（なめらか・処理時間は約2倍）</label>
+          <label><input type="radio" name="fpsMode" value="orig">元のまま（変換しない）</label>
+        </div>
+      </div>
     </div>
 
     <div class="block">
       <div class="block-title"><span class="num">5</span>字幕デザイン</div>
+      <div class="font-preview-label">フォント（15種類から選択）</div>
+      <select id="fontSelect" class="font-select">
+        <option value="Noto Sans JP">標準ゴシック（Noto Sans JP）</option>
+        <option value="Zen Kaku Gothic New">太ゴシック（Zen Kaku Gothic New）</option>
+        <option value="Kosugi Maru">丸ゴシック（Kosugi Maru）</option>
+        <option value="M PLUS Rounded 1c">太丸ゴシック（M PLUS Rounded 1c）</option>
+        <option value="Zen Maru Gothic">やさしい丸文字（Zen Maru Gothic）</option>
+        <option value="Shippori Mincho">明朝体（Shippori Mincho）</option>
+        <option value="RocknRoll One">ロック（RocknRoll One）</option>
+        <option value="Reggae One">極太レゲエ（Reggae One）</option>
+        <option value="Yusei Magic">手書きマーカー（Yusei Magic）</option>
+        <option value="Hachi Maru Pop">ゆるかわ手書き（Hachi Maru Pop）</option>
+        <option value="Mochiy Pop One">もちもちポップ（Mochiy Pop One）</option>
+        <option value="DotGothic16">ドット文字（DotGothic16）</option>
+        <option value="Rampart One">立体袋文字（Rampart One）</option>
+        <option value="Train One">縁取りレトロ（Train One）</option>
+        <option value="Stick">スティック（Stick）</option>
+      </select>
+      <div class="font-preview-label">デザインプリセット</div>
       <div class="font-presets" id="fontPresets">
         <button type="button" class="font-btn active" data-font="Noto Sans JP" data-color="#ffffff" data-bg="72" data-emph="#f3a53d" style="font-family:'Noto Sans JP'">標準</button>
         <button type="button" class="font-btn" data-font="Zen Kaku Gothic New" data-color="#ffffff" data-bg="82" data-emph="#ff5252" style="font-family:'Zen Kaku Gothic New';font-weight:900">インパクト</button>
@@ -356,6 +400,12 @@
       <div class="pos-editor wide" id="posEditor">
         <div class="box" id="posBox"></div>
       </div>
+      <div class="font-preview-label">マイ設定（この端末に保存されます）</div>
+      <div class="font-custom-row">
+        <input type="text" id="presetName" placeholder="設定名（例: 会社標準テロップ）">
+        <button type="button" class="font-apply" id="savePresetBtn">保存</button>
+      </div>
+      <div class="my-presets" id="myPresets"></div>
     </div>
 
     <button class="run-btn" id="runBtn" disabled>自動カット & 字幕生成を開始</button>
@@ -368,6 +418,7 @@
       <div class="step" data-step="whisper">  <span class="dot"></span>文字起こし（Whisper）</div>
       <div class="step" data-step="build">    <span class="dot"></span>字幕を組み立て</div>
     </div>
+    <div class="eta" id="etaText"></div>
 
   </div>
 
@@ -478,6 +529,65 @@ const FF_WORKER_SOURCE = [
 let ffWorker = null, ffMsgId = 0;
 const ffPending = new Map();
 
+// ---------- 残り時間の推定表示 ----------
+const ffProg = { t: 0, speed: 1, at: 0 };
+let eta = null, etaTimer = null;
+function startEta(opts){
+  eta = { mode: (opts.target != null) ? 'ff' : 'fixed', target: opts.target, est: opts.est || 10, t0: Date.now() };
+  ffProg.t = 0; ffProg.at = 0; ffProg.speed = 1;
+  if (!etaTimer) etaTimer = setInterval(tickEta, 500);
+  tickEta();
+}
+function stopEta(){
+  eta = null;
+  if (etaTimer){ clearInterval(etaTimer); etaTimer = null; }
+  const el = document.getElementById('etaText');
+  if (el) el.textContent = '';
+}
+function tickEta(){
+  if (!eta) return;
+  const el = document.getElementById('etaText');
+  if (!el) return;
+  let remain = null;
+  if (eta.mode === 'ff' && ffProg.at && (Date.now() - ffProg.at) < 6000 && ffProg.t > 0){
+    remain = (eta.target - ffProg.t) / ffProg.speed;
+  } else {
+    remain = eta.est - (Date.now() - eta.t0) / 1000;
+  }
+  if (remain == null || !isFinite(remain)){ el.textContent = ''; return; }
+  el.textContent = (remain <= 1) ? '⏳ まもなく完了します…' : '⏳ あと約 ' + Math.ceil(remain) + ' 秒';
+}
+
+// ---------- 完了効果音（大きめのチャイム） ----------
+let audioCtx = null;
+function initAudioCtx(){
+  try{
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  }catch(e){}
+}
+function playDoneSound(){
+  try{
+    if (!audioCtx) return;
+    const now = audioCtx.currentTime + 0.03;
+    const master = audioCtx.createGain();
+    master.gain.value = 0.95;
+    master.connect(audioCtx.destination);
+    // 上昇アルペジオ + 最後の音を強く長く
+    const notes = [[523.25,0,.45],[659.25,.14,.45],[783.99,.28,.45],[1046.5,.42,.9]];
+    notes.forEach(([f, dt, dur]) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, now + dt);
+      g.gain.exponentialRampToValueAtTime(1, now + dt + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, now + dt + dur);
+      o.connect(g); g.connect(master);
+      o.start(now + dt); o.stop(now + dt + dur + 0.05);
+    });
+  }catch(e){}
+}
+let lastCutDur = 0;
+
 function ffCall(type, payload, transfer){
   return new Promise((resolve, reject) => {
     const id = ++ffMsgId;
@@ -492,7 +602,18 @@ async function initFFmpeg(){
   ffWorker = new Worker(URL.createObjectURL(blob)); // classicワーカー
   ffWorker.onmessage = (e) => {
     const d = e.data;
-    if (d.type === 'log'){ ffmpegLogBuffer.push(d.message); return; }
+    if (d.type === 'log'){
+      ffmpegLogBuffer.push(d.message);
+      // 進行状況をログから読み取る（残り時間の推定に使用）
+      const tm = d.message && d.message.match(/time=(\d+):(\d+):(\d+\.\d+)/);
+      if (tm){
+        ffProg.t = (+tm[1])*3600 + (+tm[2])*60 + (+tm[3]);
+        ffProg.at = Date.now();
+        const sm = d.message.match(/speed=\s*([\d.]+)x/);
+        if (sm) ffProg.speed = Math.max(0.02, +sm[1]);
+      }
+      return;
+    }
     const p = ffPending.get(d.id);
     if (!p) return;
     ffPending.delete(d.id);
@@ -625,28 +746,33 @@ const KEY_STORAGE_NAME = 'cutcap_openai_key';
 let saveTimer = null;
 
 const hasArtifactStorage = (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function');
-const keyStore = {
-  async get(){
+const deviceStore = {
+  async get(k){
     if (hasArtifactStorage){
-      const res = await window.storage.get(KEY_STORAGE_NAME, false);
+      const res = await window.storage.get(k, false);
       return res ? res.value : null;
     }
-    return localStorage.getItem(KEY_STORAGE_NAME);
+    return localStorage.getItem(k);
   },
-  async set(v){
+  async set(k, v){
     if (hasArtifactStorage){
-      await window.storage.set(KEY_STORAGE_NAME, v, false);
+      await window.storage.set(k, v, false);
     } else {
-      localStorage.setItem(KEY_STORAGE_NAME, v);
+      localStorage.setItem(k, v);
     }
   },
-  async remove(){
+  async remove(k){
     if (hasArtifactStorage){
-      await window.storage.delete(KEY_STORAGE_NAME, false);
+      await window.storage.delete(k, false);
     } else {
-      localStorage.removeItem(KEY_STORAGE_NAME);
+      localStorage.removeItem(k);
     }
   }
+};
+const keyStore = {
+  get: () => deviceStore.get(KEY_STORAGE_NAME),
+  set: (v) => deviceStore.set(KEY_STORAGE_NAME, v),
+  remove: () => deviceStore.remove(KEY_STORAGE_NAME)
 };
 
 async function loadSavedKey(){
@@ -700,6 +826,15 @@ padEl.oninput = () => padVal.textContent = parseFloat(padEl.value).toFixed(2) + 
 // ---------- caption font ----------
 let captionFont = 'Noto Sans JP';
 const fontBtns = document.querySelectorAll('.font-btn');
+const fontSelect = document.getElementById('fontSelect');
+function syncFontSelect(){
+  const has = [...fontSelect.options].some(o => o.value === captionFont);
+  if (has) fontSelect.value = captionFont;
+}
+fontSelect.addEventListener('change', () => {
+  captionFont = fontSelect.value;
+  applyCaptionFont();
+});
 const PREVIEW_SAMPLE = '動画編集が**もっと簡単**になります';
 function renderFontPreview(){
   const p = document.getElementById('posBox');
@@ -714,6 +849,7 @@ fontBtns.forEach(b => b.addEventListener('click', () => {
   fontBtns.forEach(x => x.classList.remove('active'));
   b.classList.add('active');
   captionFont = b.dataset.font;
+  syncFontSelect();
   applyCaptionFont();
   // デザインプリセットの色・背景も反映し、下の詳細コントロールに同期
   if (b.dataset.color){
@@ -837,6 +973,89 @@ posBox.addEventListener('pointermove', e => {
 posBox.addEventListener('pointerup', e => { dragging = false; });
 posBox.addEventListener('pointercancel', () => { dragging = false; });
 
+// ---------- マイ設定（デザインの保存・読み込み・削除 / 端末に保存） ----------
+const PRESETS_STORAGE_NAME = 'cutcap_design_presets';
+function ensureFontLink(name){
+  const linkId = 'dyn-font-' + name.replace(/\s+/g,'-');
+  if (!document.getElementById(linkId)){
+    const link = document.createElement('link');
+    link.id = linkId; link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(name).replace(/%20/g,'+') + ':wght@400;700&display=swap';
+    document.head.appendChild(link);
+  }
+}
+async function loadMyPresets(){
+  try{
+    const raw = await deviceStore.get(PRESETS_STORAGE_NAME);
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+async function saveMyPresets(obj){
+  await deviceStore.set(PRESETS_STORAGE_NAME, JSON.stringify(obj));
+}
+function syncStyleControls(){
+  document.getElementById('capColor').value = capStyle.color;
+  document.getElementById('emphColor').value = capStyle.emph;
+  capBgEl.value = Math.round(capStyle.bg * 100);
+  document.getElementById('capBgVal').textContent = Math.round(capStyle.bg * 100) + '%';
+  capSizeEl.value = Math.round(capStyle.scale * 100);
+  document.getElementById('capSizeVal').textContent = Math.round(capStyle.scale * 100) + '%';
+  capPosEl.value = Math.min(capStyle.bottom, +capPosEl.max);
+  document.getElementById('capPosVal').textContent = capStyle.bottom + '%';
+}
+async function renderMyPresets(){
+  const wrap = document.getElementById('myPresets');
+  const presets = await loadMyPresets();
+  wrap.innerHTML = '';
+  const names = Object.keys(presets);
+  if (!names.length){
+    wrap.innerHTML = '<span style="font-size:11px;color:var(--text-dim)">保存された設定はまだありません</span>';
+    return;
+  }
+  names.forEach(name => {
+    const chip = document.createElement('span');
+    chip.className = 'my-preset';
+    chip.innerHTML = `📌 ${escapeHtml(name)} <span class="x" title="削除">✕</span>`;
+    chip.addEventListener('click', () => {
+      const p = presets[name];
+      captionFont = p.font || 'Noto Sans JP';
+      ensureFontLink(captionFont);
+      capStyle.color = p.color; capStyle.emph = p.emph; capStyle.bg = p.bg;
+      capStyle.scale = p.scale; capStyle.bottom = p.bottom;
+      capStyle.outline = p.outline || []; capStyle.dropshadow = !!p.dropshadow;
+      fontBtns.forEach(x => x.classList.remove('active'));
+      syncStyleControls();
+      syncFontSelect();
+      applyCaptionFont();
+      applyCapStyle();
+    });
+    chip.querySelector('.x').addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      if (!confirm(`「${name}」を削除しますか？`)) return;
+      delete presets[name];
+      await saveMyPresets(presets);
+      renderMyPresets();
+    });
+    wrap.appendChild(chip);
+  });
+}
+document.getElementById('savePresetBtn').addEventListener('click', async () => {
+  const name = document.getElementById('presetName').value.trim();
+  if (!name){ alert('設定名を入力してください'); return; }
+  const presets = await loadMyPresets();
+  if (presets[name] && !confirm(`「${name}」は既にあります。上書きしますか？`)) return;
+  presets[name] = {
+    font: captionFont,
+    color: capStyle.color, emph: capStyle.emph, bg: capStyle.bg,
+    scale: capStyle.scale, bottom: capStyle.bottom,
+    outline: capStyle.outline || [], dropshadow: !!capStyle.dropshadow
+  };
+  await saveMyPresets(presets);
+  document.getElementById('presetName').value = '';
+  renderMyPresets();
+});
+renderMyPresets();
+
 // ---------- step UI ----------
 let currentStage = '';
 function setStep(name, state){ // state: 'active' | 'done'
@@ -866,7 +1085,26 @@ function escapeHtml(s){
 }
 function renderEmphHTML(text){
   const safe = escapeHtml(text);
-  return safe.replace(/\*\*(.+?)\*\*/g, '<span class="emph">$1</span>');
+  return safe.replace(/\*\*(.+?)\*\*/g, '<span class="emph">$1</span>').replace(/\n/g, '<br>');
+}
+
+// 長い字幕を読みやすい位置で自動改行（句読点優先、なければ中央付近）
+const MAX_LINE_CHARS = 16;
+function autoBreak(text){
+  const t = text.replace(/\n/g, '');
+  if (t.length <= MAX_LINE_CHARS) return t;
+  const mid = Math.floor(t.length / 2);
+  const breakChars = '、。！？!?　 ・…」）)';
+  let best = -1, bestDist = Infinity;
+  for (let i = 3; i < t.length - 2; i++){
+    if (breakChars.includes(t[i])){
+      const d = Math.abs((i+1) - mid);
+      if (d < bestDist){ bestDist = d; best = i + 1; }
+    }
+  }
+  if (best < 0 || bestDist > t.length * 0.35) best = mid;
+  const a = t.slice(0, best), b = t.slice(best);
+  return (a.length > MAX_LINE_CHARS ? autoBreak(a) : a) + '\n' + (b.length > MAX_LINE_CHARS ? autoBreak(b) : b);
 }
 function srtTime(t){
   const h = Math.floor(t/3600), m = Math.floor((t%3600)/60), s = Math.floor(t%60);
@@ -885,7 +1123,9 @@ async function runPipeline(){
   ffmpegLogBuffer = [];
 
   try{
+    initAudioCtx(); // 完了音のためにユーザー操作時点で音声を有効化
     setStep('load','active');
+    startEta({ est: ffmpeg ? 2 : 22 });
     await initFFmpeg();
     await ffmpeg.writeFile('input.mp4', new Uint8Array(await videoFile.arrayBuffer()));
     setStep('load','done');
@@ -900,6 +1140,7 @@ async function runPipeline(){
 
     // ---- silence detect ----
     setStep('silence','active');
+    startEta({ target: videoDuration || 60, est: 15 });
     const threshold = thEl.value, minDur = durEl.value, padding = parseFloat(padEl.value);
     ffmpegLogBuffer = [];
     await ffmpeg.exec(['-i','input.mp4','-af',`silencedetect=noise=${threshold}dB:d=${minDur}`,'-f','null','-']);
@@ -936,21 +1177,37 @@ async function runPipeline(){
     setStep('cut','active');
     const useEye = !!eyecatchFile;
 
+    // 速度モードに応じた出力サイズを決定
+    const speedMode = document.querySelector('input[name=speedMode]:checked').value;
+    const fpsMode = document.querySelector('input[name=fpsMode]:checked').value; // '30' | '60' | 'orig'
+    const targetFps = fpsMode === 'orig' ? 0 : +fpsMode;
+    const longLimit = speedMode === 'fast' ? 1280 : speedMode === 'fastest' ? 960 : 0;
+    let outW = videoW || 1280, outH = videoH || 720;
+    if (longLimit && Math.max(outW, outH) > longLimit){
+      const sc = longLimit / Math.max(outW, outH);
+      outW = Math.round(outW * sc); outH = Math.round(outH * sc);
+    }
+    outW -= outW % 2; outH -= outH % 2;
+    const doScale = (outW !== videoW || outH !== videoH);
+    const doFps = targetFps > 0;
+    window.__outH = outH; // 焼き込み時の文字サイズ基準
+
     if (useEye){
       // アイキャッチをメイン動画と同じ解像度・形式に正規化（音声が無ければ無音を付与）
       await ffmpeg.writeFile('eyesrc', new Uint8Array(await eyecatchFile.arrayBuffer()));
       ffmpegLogBuffer = [];
       try{ await ffmpeg.exec(['-i','eyesrc']); }catch(e){}
       const eyeHasAudio = /Stream .*Audio/.test(ffmpegLogBuffer.join('\n'));
-      let W = videoW - (videoW % 2), H = videoH - (videoH % 2);
-      if (!W || !H){ W = 1280; H = 720; }
-      const vf = `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p`;
+      const W = outW, H = outH;
+      const eyeFps = targetFps || 30; // 「元のまま」でも結合のためアイキャッチは30fpsに揃える
+      const vf = `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${eyeFps},format=yuv420p`;
       const eyeArgs = eyeHasAudio
         ? ['-i','eyesrc','-vf',vf,'-c:v','libx264','-preset','ultrafast','-crf','23',
            '-c:a','aac','-ar','44100','-ac','2','eyecatch.mp4']
         : ['-i','eyesrc','-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=44100','-shortest',
            '-vf',vf,'-c:v','libx264','-preset','ultrafast','-crf','23',
            '-map','0:v:0','-map','1:a:0','-c:a','aac','eyecatch.mp4'];
+      startEta({ target: eyecatchDuration || 5, est: 20 });
       await ffmpeg.exec(eyeArgs);
       try{ await ffmpeg.deleteFile('eyesrc'); }catch(e){}
     }
@@ -981,7 +1238,12 @@ async function runPipeline(){
     }
 
     const AFMT = 'aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo';
-    const VFMT = 'setsar=1' + (useEye ? ',fps=30,format=yuv420p' : '');
+    const vChain = ['setsar=1'];
+    if (doScale) vChain.push(`scale=${outW}:${outH}`);
+    if (doFps) vChain.push(`fps=${targetFps}`);
+    else if (useEye) vChain.push('fps=30'); // アイキャッチ結合時はフレームレートを揃える必要がある
+    if (useEye || doScale) vChain.push('format=yuv420p');
+    const VFMT = vChain.join(',');
     let filterParts = [];
     let concatInputs = '';
     segments.forEach((seg, i) => {
@@ -1000,6 +1262,9 @@ async function runPipeline(){
          '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4']
       : ['-i','input.mp4','-filter_complex', filterComplex, '-map','[outv]','-map','[outa]',
          '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4'];
+    const keptDur = keep.reduce((a,k)=>a+(k.end-k.start), 0);
+    lastCutDur = keptDur + (useEye ? (eyecatchDuration||0) : 0);
+    startEta({ target: lastCutDur, est: 40 });
     await ffmpeg.exec(cutArgs);
     cutVideoBytes = await ffmpeg.readFile('cut.mp4');
     try{ await ffmpeg.deleteFile('input.mp4'); }catch(e){} // メモリ節約（iPhone対策）
@@ -1015,6 +1280,7 @@ async function runPipeline(){
 
     // ---- extract audio from CUT video (so Whisper timestamps match final timeline) ----
     setStep('audio','active');
+    startEta({ target: lastCutDur || 30, est: 10 });
     await ffmpeg.exec(['-i','cut.mp4','-vn','-acodec','pcm_s16le','-ar','16000','-ac','1','audio.wav']);
     const audioBytes = await ffmpeg.readFile('audio.wav');
     try{ await ffmpeg.deleteFile('audio.wav'); }catch(e){}
@@ -1022,6 +1288,7 @@ async function runPipeline(){
 
     // ---- whisper ----
     setStep('whisper','active');
+    startEta({ est: Math.max(5, Math.round((lastCutDur || 30) * 0.2)) });
     const form = new FormData();
     form.append('file', new Blob([audioBytes.buffer], {type:'audio/wav'}), 'audio.wav');
     form.append('model','whisper-1');
@@ -1042,7 +1309,7 @@ async function runPipeline(){
     // ---- build captions ----
     setStep('build','active');
     captions = (data.segments || []).map(s => ({
-      start: s.start, end: s.end, text: (s.text||'').trim()
+      start: s.start, end: s.end, text: autoBreak((s.text||'').trim())
     })).filter(c => c.text.length > 0);
     if (captions.length === 0 && data.text){
       captions = [{start:0, end: Math.min(6, keep.reduce((a,k)=>a+(k.end-k.start),0)), text: data.text.trim()}];
@@ -1057,12 +1324,14 @@ async function runPipeline(){
     const badge = document.getElementById('resultBadge');
     badge.style.display = 'inline-flex';
     badge.innerHTML = `<span class="d"></span>完了 — ${keep.length}個のクリップ / 字幕 ${captions.length}件`;
+    playDoneSound();
 
   } catch(err){
     console.error(err);
     const stageNames = {load:'エンジン準備', silence:'無音検出', cut:'カット処理', audio:'音声書き出し', whisper:'文字起こし', build:'字幕組み立て'};
     alert('処理中にエラーが発生しました（' + (stageNames[currentStage]||'不明な工程') + '）：\n' + errText(err));
   } finally {
+    stopEta();
     runBtn.disabled = false;
   }
 }
@@ -1097,7 +1366,7 @@ function renderCaptionList(){
       <div class="idx">${String(i+1).padStart(2,'0')}</div>
       <div class="body">
         <div class="time">${fmtTime(c.start)} → ${fmtTime(c.end)}</div>
-        <textarea class="txt" rows="1">${c.text}</textarea>
+        <textarea class="txt" rows="${c.text.split('\n').length}">${c.text}</textarea>
         <div class="preview"></div>
       </div>
       <button class="del" title="この字幕を削除">✕</button>
@@ -1160,6 +1429,7 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
   const btn = document.getElementById('dlBurn');
   const original = btn.textContent;
   btn.disabled = true; btn.textContent = '⏳ フォント準備中…';
+  initAudioCtx();
   try{
     const GF = 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/';
     const FONT_FILES = {
@@ -1172,6 +1442,12 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
       'Yusei Magic':         [GF+'yuseimagic/YuseiMagic-Regular.ttf'],
       'DotGothic16':         [GF+'dotgothic16/DotGothic16-Regular.ttf'],
       'Reggae One':          [GF+'reggaeone/ReggaeOne-Regular.ttf'],
+      'Zen Maru Gothic':     [GF+'zenmarugothic/ZenMaruGothic-Bold.ttf', GF+'zenmarugothic/ZenMaruGothic-Medium.ttf'],
+      'Hachi Maru Pop':      [GF+'hachimarupop/HachiMaruPop-Regular.ttf'],
+      'Mochiy Pop One':      [GF+'mochiypopone/MochiyPopOne-Regular.ttf'],
+      'Rampart One':         [GF+'rampartone/RampartOne-Regular.ttf'],
+      'Train One':           [GF+'trainone/TrainOne-Regular.ttf'],
+      'Stick':               [GF+'stick/Stick-Regular.ttf'],
     };
     const FALLBACK_FONT_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/kosugi-maru/fonts/ttf/KosugiMaru-Regular.ttf';
     if (window.__cutcapLoadedFont !== captionFont){
@@ -1189,38 +1465,45 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
       window.__cutcapLoadedFont = captionFont;
     }
     btn.textContent = '🔥 焼き込み中…';
+    startEta({ target: lastCutDur || 30, est: 45 });
     function esc(s){
       return s.replace(/\\/g,'\\\\').replace(/:/g,'\\:').replace(/'/g,"\u2019")
         .replace(/,/g,'\\,').replace(/\[/g,'\\[').replace(/\]/g,'\\]').replace(/%/g,'\\%');
     }
     const hex = h => '0x' + h.replace('#','');
-    const fspx = Math.max(12, Math.round((videoH || 720) * 0.045 * capStyle.scale));
+    const fspx = Math.max(12, Math.round((window.__outH || videoH || 720) * 0.045 * capStyle.scale));
     const bottomRatio = (capStyle.bottom / 100).toFixed(3);
     const outline = capStyle.outline || [];
+    const lineH = Math.round(fspx * 1.45);
     const chainParts = [];
     captions.forEach(c => {
-      const base = `drawtext=fontfile=/font.ttf:text='${esc(c.text.replace(/\*\*/g,''))}':enable='between(t,${c.start},${c.end})':`+
-                   `x=(w-text_w)/2:y=h-th-h*${bottomRatio}:fontsize=${fspx}:fontcolor=${hex(capStyle.color)}`;
-      const layers = [];
-      if (outline.length > 1){
-        const bw2 = Math.max(1, Math.round(fspx * (outline[0].w + outline[1].w)));
-        layers.push(base + `:borderw=${bw2}:bordercolor=${hex(outline[1].c)}`);
-      }
-      if (outline.length > 0){
-        const bw1 = Math.max(1, Math.round(fspx * outline[0].w));
-        layers.push(base + `:borderw=${bw1}:bordercolor=${hex(outline[0].c)}`);
-      } else {
-        layers.push(base);
-      }
-      // 背景ボックス・ドロップシャドウは最下層に付与
-      if (capStyle.bg > 0.02){
-        layers[0] += `:box=1:boxcolor=black@${capStyle.bg.toFixed(2)}:boxborderw=14`;
-      }
-      if (capStyle.dropshadow){
-        const so = Math.max(1, Math.round(fspx * 0.09));
-        layers[0] += `:shadowcolor=black@0.45:shadowx=${so}:shadowy=${so}`;
-      }
-      chainParts.push(...layers);
+      const lines = c.text.replace(/\*\*/g,'').split('\n').map(s=>s.trim()).filter(s=>s.length);
+      lines.forEach((lineText, li) => {
+        const fromBottom = lines.length - 1 - li; // 最終行が最下段
+        const yExpr = `h-th-h*${bottomRatio}-${fromBottom * lineH}`;
+        const base = `drawtext=fontfile=/font.ttf:text='${esc(lineText)}':enable='between(t,${c.start},${c.end})':`+
+                     `x=(w-text_w)/2:y=${yExpr}:fontsize=${fspx}:fontcolor=${hex(capStyle.color)}`;
+        const layers = [];
+        if (outline.length > 1){
+          const bw2 = Math.max(1, Math.round(fspx * (outline[0].w + outline[1].w)));
+          layers.push(base + `:borderw=${bw2}:bordercolor=${hex(outline[1].c)}`);
+        }
+        if (outline.length > 0){
+          const bw1 = Math.max(1, Math.round(fspx * outline[0].w));
+          layers.push(base + `:borderw=${bw1}:bordercolor=${hex(outline[0].c)}`);
+        } else {
+          layers.push(base);
+        }
+        // 背景ボックス・ドロップシャドウは最下層に付与
+        if (capStyle.bg > 0.02){
+          layers[0] += `:box=1:boxcolor=black@${capStyle.bg.toFixed(2)}:boxborderw=10`;
+        }
+        if (capStyle.dropshadow){
+          const so = Math.max(1, Math.round(fspx * 0.09));
+          layers[0] += `:shadowcolor=black@0.45:shadowx=${so}:shadowy=${so}`;
+        }
+        chainParts.push(...layers);
+      });
     });
     const chain = chainParts.join(',');
     await ffmpeg.exec(['-i','cut.mp4','-vf', chain, '-c:a','copy','burned.mp4']);
@@ -1229,10 +1512,12 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
     const blob = new Blob([out.buffer], {type:'video/mp4'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'autocut_burned.mp4'; a.click();
+    playDoneSound();
   }catch(err){
     console.error(err);
     alert('字幕の焼き込みに失敗しました。カット済み動画とSRTを別々にダウンロードしてご利用ください。\n(' + errText(err) + ')');
   } finally {
+    stopEta();
     btn.disabled = false; btn.textContent = original;
   }
 });
