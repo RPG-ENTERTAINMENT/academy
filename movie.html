@@ -193,6 +193,16 @@
   .font-apply{background:var(--panel-2);border:1px solid var(--line);color:var(--text-dim);border-radius:8px;
     padding:0 12px;cursor:pointer;font-size:12px;flex:none;}
   .font-apply:hover{border-color:var(--teal);color:var(--teal);}
+  .font-preview-label{font-size:11px;color:var(--text-dim);}
+  .font-preview{
+    background:#000;border-radius:10px;border:1px solid var(--line);
+    padding:18px 12px;display:flex;justify-content:center;align-items:center;
+  }
+  .font-preview .box{
+    background:rgba(6,12,18,.72);color:#fff;padding:7px 14px;border-radius:8px;
+    font-size:14px;font-weight:500;text-align:center;line-height:1.5;
+    border:1px solid rgba(45,216,198,.25);font-family:var(--cap-font);
+  }
 
   .badge{
     display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);
@@ -264,6 +274,8 @@
         <button type="button" class="font-apply" id="applyCustomFont">適用</button>
       </div>
       <div class="hint">字幕内で <b>**大事な言葉**</b> のように囲むと、その部分だけ大きく表示されます</div>
+      <div class="font-preview-label">プレビュー（実際の字幕の見え方）</div>
+      <div class="font-preview" id="fontPreview"></div>
     </div>
 
     <button class="run-btn" id="runBtn" disabled>自動カット & 字幕生成を開始</button>
@@ -441,8 +453,15 @@ padEl.oninput = () => padVal.textContent = parseFloat(padEl.value).toFixed(2) + 
 // ---------- caption font ----------
 let captionFont = 'Noto Sans JP';
 const fontBtns = document.querySelectorAll('.font-btn');
+const PREVIEW_SAMPLE = '動画編集が**もっと簡単**になります';
+function renderFontPreview(){
+  const p = document.getElementById('fontPreview');
+  if (!p) return;
+  p.innerHTML = '<div class="box">' + renderEmphHTML(PREVIEW_SAMPLE) + '</div>';
+}
 function applyCaptionFont(){
   document.documentElement.style.setProperty('--cap-font', `'${captionFont}', sans-serif`);
+  renderFontPreview();
 }
 fontBtns.forEach(b => b.addEventListener('click', () => {
   fontBtns.forEach(x => x.classList.remove('active'));
