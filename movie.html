@@ -7,7 +7,7 @@
 <title>自動動画カット&字幕生成ソフト</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Kosugi+Maru&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.11.0/ffmpeg.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.12.15/umd/ffmpeg.min.js"></script>
 <style>
   :root{
     --ink:#0c141c;
@@ -344,16 +344,29 @@
   }
 </script>
 <script>
-const { createFFmpeg, fetchFile } = FFmpeg;
-// SharedArrayBufferが使える環境(cross-origin isolated)ではマルチスレッド版、
-// 使えない環境(GitHub Pages / iPhone Safari等)ではシングルスレッド版に自動切替
-const hasSAB = (typeof SharedArrayBuffer !== 'undefined');
-const ffmpeg = hasSAB
-  ? createFFmpeg({ log: false, corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.11.0/ffmpeg-core.js' })
-  : createFFmpeg({ log: false, mainName: 'main', corePath: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core-st@0.11.1/dist/ffmpeg-core.js' });
-let ffmpegLoaded = false;
+// ffmpeg.wasm 0.12系（シングルスレッド・メモリ段階確保）— iPhone Safari含め幅広い環境で動作
+let ffmpeg = null;
 let ffmpegLogBuffer = [];
-ffmpeg.setLogger(({type, message}) => { ffmpegLogBuffer.push(message); });
+
+async function toBlobURL(url, type){
+  const r = await fetch(url);
+  if (!r.ok) throw new Error('コンポーネントの取得に失敗: ' + url);
+  return URL.createObjectURL(new Blob([await r.arrayBuffer()], {type}));
+}
+
+async function initFFmpeg(){
+  if (ffmpeg) return;
+  const f = new FFmpegWASM.FFmpeg();
+  f.on('log', ({message}) => { ffmpegLogBuffer.push(message); });
+  const coreBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
+  const umdBase  = 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.12.15/umd';
+  await f.load({
+    coreURL: await toBlobURL(coreBase + '/ffmpeg-core.js', 'text/javascript'),
+    wasmURL: await toBlobURL(coreBase + '/ffmpeg-core.wasm', 'application/wasm'),
+    classWorkerURL: await toBlobURL(umdBase + '/814.ffmpeg.js', 'text/javascript'),
+  });
+  ffmpeg = f;
+}
 
 let videoFile = null;
 let videoDuration = 0;
@@ -558,14 +571,14 @@ async function runPipeline(){
 
   try{
     setStep('load','active');
-    if (!ffmpegLoaded){ await ffmpeg.load(); ffmpegLoaded = true; }
-    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
+    await initFFmpeg();
+    await ffmpeg.writeFile('input.mp4', new Uint8Array(await videoFile.arrayBuffer()));
     setStep('load','done');
 
     // ---- duration (fallback if metadata failed) ----
     if (!videoDuration || !isFinite(videoDuration)){
       ffmpegLogBuffer = [];
-      try{ await ffmpeg.run('-i','input.mp4'); }catch(e){}
+      try{ await ffmpeg.exec(['-i','input.mp4']); }catch(e){}
       const durMatch = ffmpegLogBuffer.join('\n').match(/Duration:\s*(\d+):(\d+):(\d+\.\d+)/);
       if (durMatch) videoDuration = (+durMatch[1])*3600 + (+durMatch[2])*60 + (+durMatch[3]);
     }
@@ -574,7 +587,7 @@ async function runPipeline(){
     setStep('silence','active');
     const threshold = thEl.value, minDur = durEl.value, padding = parseFloat(padEl.value);
     ffmpegLogBuffer = [];
-    await ffmpeg.run('-i','input.mp4','-af',`silencedetect=noise=${threshold}dB:d=${minDur}`,'-f','null','-');
+    await ffmpeg.exec(['-i','input.mp4','-af',`silencedetect=noise=${threshold}dB:d=${minDur}`,'-f','null','-']);
     const log = ffmpegLogBuffer.join('\n');
     const silences = [];
     const startRe = /silence_start:\s*([\d.]+)/g;
@@ -614,9 +627,10 @@ async function runPipeline(){
       concatInputs += `[v${i}][a${i}]`;
     });
     const filterComplex = filterParts.join(';') + `;${concatInputs}concat=n=${keep.length}:v=1:a=1[outv][outa]`;
-    await ffmpeg.run('-i','input.mp4','-filter_complex', filterComplex, '-map','[outv]','-map','[outa]',
-      '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4');
-    cutVideoBytes = ffmpeg.FS('readFile','cut.mp4');
+    await ffmpeg.exec(['-i','input.mp4','-filter_complex', filterComplex, '-map','[outv]','-map','[outa]',
+      '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4']);
+    cutVideoBytes = await ffmpeg.readFile('cut.mp4');
+    try{ await ffmpeg.deleteFile('input.mp4'); }catch(e){} // メモリ節約（iPhone対策）
     cutVideoBlobUrl = URL.createObjectURL(new Blob([cutVideoBytes.buffer], {type:'video/mp4'}));
     const player = document.getElementById('player');
     player.src = cutVideoBlobUrl;
@@ -628,8 +642,9 @@ async function runPipeline(){
 
     // ---- extract audio from CUT video (so Whisper timestamps match final timeline) ----
     setStep('audio','active');
-    await ffmpeg.run('-i','cut.mp4','-vn','-acodec','pcm_s16le','-ar','16000','-ac','1','audio.wav');
-    const audioBytes = ffmpeg.FS('readFile','audio.wav');
+    await ffmpeg.exec(['-i','cut.mp4','-vn','-acodec','pcm_s16le','-ar','16000','-ac','1','audio.wav']);
+    const audioBytes = await ffmpeg.readFile('audio.wav');
+    try{ await ffmpeg.deleteFile('audio.wav'); }catch(e){}
     setStep('audio','done');
 
     // ---- whisper ----
@@ -778,13 +793,13 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
     };
     const FALLBACK_FONT_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/kosugi-maru/fonts/ttf/KosugiMaru-Regular.ttf';
     if (window.__cutcapLoadedFont !== captionFont){
-      try{ ffmpeg.FS('unlink','font.ttf'); }catch(e){}
+      try{ await ffmpeg.deleteFile('font.ttf'); }catch(e){}
       const url = FONT_FILES[captionFont] || FALLBACK_FONT_URL;
       let fontResp = await fetch(url);
       if (!fontResp.ok) fontResp = await fetch(FALLBACK_FONT_URL);
       if (!fontResp.ok) throw new Error('フォントの取得に失敗しました');
       const fontBuf = new Uint8Array(await fontResp.arrayBuffer());
-      ffmpeg.FS('writeFile','font.ttf', fontBuf);
+      await ffmpeg.writeFile('font.ttf', fontBuf);
       window.__cutcapLoadedFont = captionFont;
     }
     btn.textContent = '🔥 焼き込み中…';
@@ -796,8 +811,9 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
       `drawtext=fontfile=/font.ttf:text='${esc(c.text.replace(/\*\*/g,''))}':enable='between(t,${c.start},${c.end})':`+
       `x=(w-text_w)/2:y=h-h*0.16:fontsize=h*0.045:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=14`
     ).join(',');
-    await ffmpeg.run('-i','cut.mp4','-vf', chain, '-c:a','copy','burned.mp4');
-    const out = ffmpeg.FS('readFile','burned.mp4');
+    await ffmpeg.exec(['-i','cut.mp4','-vf', chain, '-c:a','copy','burned.mp4']);
+    const out = await ffmpeg.readFile('burned.mp4');
+    try{ await ffmpeg.deleteFile('burned.mp4'); }catch(e){}
     const blob = new Blob([out.buffer], {type:'video/mp4'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'autocut_burned.mp4'; a.click();
