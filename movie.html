@@ -7,7 +7,6 @@
 <title>自動動画カット&字幕生成ソフト</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Kosugi+Maru&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.12.15/umd/ffmpeg.min.js"></script>
 <style>
   :root{
     --ink:#0c141c;
@@ -219,7 +218,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v1.7</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v1.8</span></small></div>
 </div>
 
 <div class="layout">
@@ -344,30 +343,92 @@
   }
 </script>
 <script>
-// ffmpeg.wasm 0.12系（シングルスレッド・メモリ段階確保）— iPhone Safari含め幅広い環境で動作
+// ============================================================
+// ffmpegコアを自前の軽量ワーカーで直接動かす
+// iPhone Safari対応: classicワーカー + importScripts のみ使用
+// （モジュールワーカー/動的importはiOS Safariで動かないため不使用）
+// ============================================================
 let ffmpeg = null;
 let ffmpegLogBuffer = [];
 
-async function toBlobURL(url, type){
-  const r = await fetch(url);
-  if (!r.ok) throw new Error('コンポーネントの取得に失敗: ' + url);
-  return URL.createObjectURL(new Blob([await r.arrayBuffer()], {type}));
+const FF_CORE_BASE = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
+
+const FF_WORKER_SOURCE = [
+"var CORE_URL='" + FF_CORE_BASE + "/ffmpeg-core.js';",
+"var WASM_URL='" + FF_CORE_BASE + "/ffmpeg-core.wasm';",
+"var core=null;",
+"self.onmessage=function(e){",
+"  var d=e.data;",
+"  var reply=function(ok,result,error){",
+"    try{ self.postMessage({id:d.id, ok:ok, result:result, error:error}); }",
+"    catch(_){ self.postMessage({id:d.id, ok:false, error:'結果の転送に失敗しました'}); }",
+"  };",
+"  (async function(){",
+"    try{",
+"      var result=null;",
+"      if(d.type==='load'){",
+"        importScripts(CORE_URL);",
+"        core=await self.createFFmpegCore({",
+"          mainScriptUrlOrBlob: CORE_URL+'#'+btoa(JSON.stringify({wasmURL:WASM_URL}))",
+"        });",
+"        core.setLogger(function(l){ self.postMessage({type:'log', message:(l&&l.message)||''}); });",
+"      } else if(!core){",
+"        throw new Error('エンジン未初期化');",
+"      } else if(d.type==='writeFile'){",
+"        core.FS.writeFile(d.payload.path, d.payload.data);",
+"      } else if(d.type==='exec'){",
+"        core.setTimeout(-1);",
+"        core.exec.apply(core, d.payload.args);",
+"        result=core.ret;",
+"        core.reset();",
+"      } else if(d.type==='readFile'){",
+"        result=core.FS.readFile(d.payload.path, {encoding:'binary'});",
+"      } else if(d.type==='deleteFile'){",
+"        core.FS.unlink(d.payload.path);",
+"      }",
+"      reply(true, result);",
+"    }catch(err){",
+"      reply(false, null, (err&&err.message)?err.message:String(err));",
+"    }",
+"  })();",
+"};"
+].join('\n');
+
+let ffWorker = null, ffMsgId = 0;
+const ffPending = new Map();
+
+function ffCall(type, payload, transfer){
+  return new Promise((resolve, reject) => {
+    const id = ++ffMsgId;
+    ffPending.set(id, {resolve, reject});
+    ffWorker.postMessage({id, type, payload}, transfer || []);
+  });
 }
 
 async function initFFmpeg(){
   if (ffmpeg) return;
-  const f = new FFmpegWASM.FFmpeg();
-  f.on('log', ({message}) => { ffmpegLogBuffer.push(message); });
-  // iPhone Safariはワーカー内でblobモジュールのimport不可のため、コアはCDNのURLを直接指定する
-  // (classWorkerURLのみblob化: ワーカー生成はsame-origin制約があるため)
-  const coreBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
-  const umdBase  = 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.12.15/umd';
-  await f.load({
-    coreURL: coreBase + '/ffmpeg-core.js',
-    wasmURL: coreBase + '/ffmpeg-core.wasm',
-    classWorkerURL: await toBlobURL(umdBase + '/814.ffmpeg.js', 'text/javascript'),
-  });
-  ffmpeg = f;
+  const blob = new Blob([FF_WORKER_SOURCE], {type:'text/javascript'});
+  ffWorker = new Worker(URL.createObjectURL(blob)); // classicワーカー
+  ffWorker.onmessage = (e) => {
+    const d = e.data;
+    if (d.type === 'log'){ ffmpegLogBuffer.push(d.message); return; }
+    const p = ffPending.get(d.id);
+    if (!p) return;
+    ffPending.delete(d.id);
+    d.ok ? p.resolve(d.result) : p.reject(new Error(d.error || '不明なエラー'));
+  };
+  ffWorker.onerror = (e) => {
+    const msg = 'ワーカーエラー: ' + (e.message || '詳細不明');
+    ffPending.forEach(p => p.reject(new Error(msg)));
+    ffPending.clear();
+  };
+  await ffCall('load');
+  ffmpeg = {
+    writeFile: (path, data) => ffCall('writeFile', {path, data}, [data.buffer]),
+    exec:      (args)       => ffCall('exec', {args}),
+    readFile:  (path)       => ffCall('readFile', {path}),
+    deleteFile:(path)       => ffCall('deleteFile', {path}),
+  };
 }
 
 function errText(e){
