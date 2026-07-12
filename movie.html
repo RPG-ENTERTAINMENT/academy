@@ -219,7 +219,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に</small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v1.6</span></small></div>
 </div>
 
 <div class="layout">
@@ -358,7 +358,8 @@ async function initFFmpeg(){
   if (ffmpeg) return;
   const f = new FFmpegWASM.FFmpeg();
   f.on('log', ({message}) => { ffmpegLogBuffer.push(message); });
-  const coreBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/umd';
+  // 0.12系はワーカーがモジュール型のため、コアはESM版を使う必要がある
+  const coreBase = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.10/dist/esm';
   const umdBase  = 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.12.15/umd';
   await f.load({
     coreURL: await toBlobURL(coreBase + '/ffmpeg-core.js', 'text/javascript'),
@@ -366,6 +367,14 @@ async function initFFmpeg(){
     classWorkerURL: await toBlobURL(umdBase + '/814.ffmpeg.js', 'text/javascript'),
   });
   ffmpeg = f;
+}
+
+function errText(e){
+  if (e === undefined || e === null) return '不明なエラー（詳細情報なし）';
+  if (typeof e === 'string') return e;
+  if (e.message) return e.message;
+  if (e.reason && e.reason.message) return e.reason.message;
+  try{ return JSON.stringify(e); }catch(_){ return String(e); }
 }
 
 let videoFile = null;
@@ -525,7 +534,9 @@ document.getElementById('applyCustomFont').addEventListener('click', () => {
 applyCaptionFont();
 
 // ---------- step UI ----------
+let currentStage = '';
 function setStep(name, state){ // state: 'active' | 'done'
+  if (state === 'active') currentStage = name;
   document.querySelectorAll('.step').forEach(s => {
     if (s.dataset.step === name){ s.classList.remove('active','done'); s.classList.add(state); }
   });
@@ -687,7 +698,8 @@ async function runPipeline(){
 
   } catch(err){
     console.error(err);
-    alert('処理中にエラーが発生しました：\n' + err.message);
+    const stageNames = {load:'エンジン準備', silence:'無音検出', cut:'カット処理', audio:'音声書き出し', whisper:'文字起こし', build:'字幕組み立て'};
+    alert('処理中にエラーが発生しました（' + (stageNames[currentStage]||'不明な工程') + '）：\n' + errText(err));
   } finally {
     runBtn.disabled = false;
   }
@@ -819,7 +831,7 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
     a.href = URL.createObjectURL(blob); a.download = 'autocut_burned.mp4'; a.click();
   }catch(err){
     console.error(err);
-    alert('字幕の焼き込みに失敗しました。カット済み動画とSRTを別々にダウンロードしてご利用ください。\n(' + err.message + ')');
+    alert('字幕の焼き込みに失敗しました。カット済み動画とSRTを別々にダウンロードしてご利用ください。\n(' + errText(err) + ')');
   } finally {
     btn.disabled = false; btn.textContent = original;
   }
