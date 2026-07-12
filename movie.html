@@ -169,7 +169,7 @@
   .caption-list{display:flex;flex-direction:column;gap:8px;max-height:640px;overflow-y:auto;padding-right:4px;}
   .cap-row{
     display:flex;gap:10px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;
-    cursor:pointer;transition:.12s;
+    transition:.12s;
   }
   .cap-row:hover{border-color:#33506322;}
   .cap-row.playing{border-color:#1a1a1a;background:#f7f7f9;}
@@ -277,7 +277,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v3.9</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v4.4</span></small></div>
 </div>
 
 <div class="layout">
@@ -290,6 +290,7 @@
         <label class="key-toggle"><input type="checkbox" id="saveKeyToggle">次回から自動入力する（この端末に保存）</label>
         <span class="key-status" id="keyStatus"></span>
       </div>
+      <button type="button" class="xbtn" id="testKeyBtn" style="width:100%">📡 接続テスト（キーと通信の確認）</button>
     </div>
 
     <div class="block">
@@ -338,6 +339,14 @@
       </div>
       <div class="hint" id="iconMockHint" style="display:none">↑ 実際の動画上での位置とサイズです。プレビューの四隅をタップしても位置を変えられます</div>
       <div class="radio-row" id="iconOpts" style="display:none">
+        <div class="export-row" style="width:100%">
+          <button type="button" class="xbtn" id="iconRemoveBg">🪄 背景を自動で消す</button>
+          <button type="button" class="xbtn" id="iconRestoreBg" disabled>元に戻す</button>
+        </div>
+        <div class="slider-row" style="width:100%;display:none" id="iconTolRow">
+          <div class="lbl"><span>背景を消す強さ</span><b id="iconTolVal">40</b></div>
+          <input type="range" id="iconTol" min="10" max="90" value="40" step="5">
+        </div>
         <div class="corner-grid">
           <label><input type="radio" name="iconCorner" value="tl">左上</label>
           <label><input type="radio" name="iconCorner" value="tr" checked>右上</label>
@@ -384,8 +393,8 @@
       <div class="block-title"><span class="num">6</span>字幕デザイン</div>
       <div class="font-preview-label">フォント（15種類・見た目そのまま表示）</div>
       <div class="font-grid" id="fontGrid">
-        <button type="button" class="fontg-btn active" data-font="Noto Sans JP"><span class="fname">標準ゴシック</span><span class="fsample" style="font-family:'Noto Sans JP'">字幕テスト</span></button>
-        <button type="button" class="fontg-btn" data-font="Zen Kaku Gothic New"><span class="fname">太ゴシック</span><span class="fsample" style="font-family:'Zen Kaku Gothic New';font-weight:900">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Noto Sans JP"><span class="fname">標準ゴシック</span><span class="fsample" style="font-family:'Noto Sans JP'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn active" data-font="Zen Kaku Gothic New"><span class="fname">太ゴシック</span><span class="fsample" style="font-family:'Zen Kaku Gothic New';font-weight:900">字幕テスト</span></button>
         <button type="button" class="fontg-btn" data-font="Kosugi Maru"><span class="fname">丸ゴシック</span><span class="fsample" style="font-family:'Kosugi Maru'">字幕テスト</span></button>
         <button type="button" class="fontg-btn" data-font="M PLUS Rounded 1c"><span class="fname">太丸ゴシック</span><span class="fsample" style="font-family:'M PLUS Rounded 1c';font-weight:800">字幕テスト</span></button>
         <button type="button" class="fontg-btn" data-font="Zen Maru Gothic"><span class="fname">やさしい丸文字</span><span class="fsample" style="font-family:'Zen Maru Gothic';font-weight:700">字幕テスト</span></button>
@@ -402,7 +411,7 @@
       </div>
       <div class="font-preview-label">デザインプリセット</div>
       <div class="font-presets" id="fontPresets">
-        <button type="button" class="font-btn active" data-font="Noto Sans JP" data-color="#ffffff" data-bg="72" data-emph="#f3a53d" style="font-family:'Noto Sans JP'">標準</button>
+        <button type="button" class="font-btn" data-font="Noto Sans JP" data-color="#ffffff" data-bg="72" data-emph="#f3a53d" style="font-family:'Noto Sans JP'">標準</button>
         <button type="button" class="font-btn" data-font="Zen Kaku Gothic New" data-color="#ffffff" data-bg="82" data-emph="#ff5252" style="font-family:'Zen Kaku Gothic New';font-weight:900">インパクト</button>
         <button type="button" class="font-btn" data-font="Kosugi Maru" data-color="#ffffff" data-bg="65" data-emph="#ff8fc7" style="font-family:'Kosugi Maru'">まる文字</button>
         <button type="button" class="font-btn" data-font="RocknRoll One" data-color="#ffe600" data-bg="85" data-emph="#ff5252" style="font-family:'RocknRoll One';color:#ffe600">バラエティ</button>
@@ -412,7 +421,7 @@
         <button type="button" class="font-btn" data-font="DotGothic16" data-color="#d8ffe8" data-bg="80" data-emph="#7cfc00" style="font-family:'DotGothic16';color:#d8ffe8">レトロゲーム</button>
         <button type="button" class="font-btn" data-font="Reggae One" data-color="#ffffff" data-bg="90" data-emph="#ffe600" style="font-family:'Reggae One'">極太見出し</button>
         <button type="button" class="font-btn" data-font="Noto Sans JP" data-color="#ffffff" data-bg="0" data-emph="#ffffff" style="font-family:'Noto Sans JP';font-weight:300">ミニマル</button>
-        <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="0" data-emph="#ffe600" data-outline='[{"w":0.14,"c":"#000000"}]'>黒ぶち定番</button>
+        <button type="button" class="font-btn active" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="0" data-emph="#ffe600" data-outline='[{"w":0.14,"c":"#000000"}]'>黒ぶち定番</button>
         <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="0" data-emph="#ffe600" data-outline='[{"w":0.13,"c":"#000000"}]' data-shadow="1">黒ぶちシャドウ</button>
         <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="0" data-emph="#ffe600" data-outline='[{"w":0.09,"c":"#000000"},{"w":0.09,"c":"#c73e3e"}]'>赤ぶち二重</button>
         <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#ffffff" data-bg="0" data-emph="#ffe600" data-outline='[{"w":0.09,"c":"#000000"},{"w":0.09,"c":"#3d9bd8"}]'>青ぶち二重</button>
@@ -426,20 +435,20 @@
       <label class="key-toggle" style="margin-top:2px"><input type="checkbox" id="capBold">太字にする</label>
       <div class="hint">字幕内で <b>**大事な言葉**</b> のように囲むと、その部分だけ大きく表示されます</div>
       <div class="slider-row">
-        <div class="lbl"><span>文字サイズ</span><b id="capSizeVal">100%</b></div>
-        <input type="range" id="capSize" min="60" max="160" value="100" step="5">
+        <div class="lbl"><span>文字サイズ</span><b id="capSizeVal">145%</b></div>
+        <input type="range" id="capSize" min="60" max="160" value="145" step="5">
       </div>
       <div class="slider-row">
         <div class="lbl"><span>表示位置（下からの高さ）</span><b id="capPosVal">6%</b></div>
         <input type="range" id="capPos" min="0" max="85" value="6" step="1">
       </div>
       <div class="slider-row">
-        <div class="lbl"><span>背景の濃さ</span><b id="capBgVal">72%</b></div>
-        <input type="range" id="capBg" min="0" max="100" value="72" step="5">
+        <div class="lbl"><span>背景の濃さ</span><b id="capBgVal">0%</b></div>
+        <input type="range" id="capBg" min="0" max="100" value="0" step="5">
       </div>
       <div class="color-grid">
         <div class="color-item"><span>文字色</span><input type="color" id="capColor" value="#ffffff"></div>
-        <div class="color-item"><span>強調色</span><input type="color" id="emphColor" value="#f3a53d"></div>
+        <div class="color-item"><span>強調色</span><input type="color" id="emphColor" value="#ffe600"></div>
       </div>
       <label class="key-toggle"><input type="checkbox" id="gradOn">文字色をグラデーションにする</label>
       <div class="color-grid" id="gradRow" style="display:none">
@@ -461,6 +470,42 @@
         <button type="button" class="font-apply" id="savePresetBtn">保存</button>
       </div>
       <div class="my-presets" id="myPresets"></div>
+    </div>
+
+    <div class="block">
+      <div class="block-title"><span class="num">7</span>効果音（任意）</div>
+      <label class="key-toggle"><input type="checkbox" id="seOn">字幕の表示に合わせて効果音を入れる</label>
+      <div id="seOpts" style="display:none;flex-direction:column;gap:10px">
+        <div class="font-presets">
+          <button type="button" class="font-btn se-btn active" data-se="pop">🫧 ポップ</button>
+          <button type="button" class="font-btn se-btn" data-se="pikon">🔔 ピコン</button>
+          <button type="button" class="font-btn se-btn" data-se="whoosh">💨 シュッ</button>
+          <button type="button" class="font-btn se-btn" data-se="sparkle">✨ キラン</button>
+          <button type="button" class="font-btn se-btn" data-se="don">🥁 ドン</button>
+          <button type="button" class="font-btn se-btn" data-se="type">⌨️ カタッ</button>
+        </div>
+        <div class="slider-row">
+          <div class="lbl"><span>効果音の音量</span><b id="seVolVal">60%</b></div>
+          <input type="range" id="seVol" min="10" max="100" value="60" step="5">
+        </div>
+        <div class="hint">ボタンを押すと試聴できます。効果音は「字幕焼き込み動画」に合成されます</div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title"><span class="num">8</span>BGM（任意）</div>
+      <div class="drop" id="bgmDrop">
+        <input type="file" id="bgmInput" accept="audio/*">
+        <div class="ic">🎵</div>
+        <div class="t1">BGMを追加（MP3など）</div>
+        <div class="t2">動画の長さに合わせてループ＆最後にフェードアウト</div>
+      </div>
+      <div id="bgmChip" style="display:none"></div>
+      <div class="slider-row" id="bgmVolRow" style="display:none">
+        <div class="lbl"><span>BGMの音量</span><b id="bgmVolVal">25%</b></div>
+        <input type="range" id="bgmVol" min="5" max="100" value="25" step="5">
+      </div>
+      <div class="hint">BGMは「字幕焼き込み動画」に合成されます（文字起こしの精度を保つため、カット処理には影響しません）</div>
     </div>
 
     <button class="run-btn" id="runBtn" disabled>自動カット & 字幕生成を開始</button>
@@ -643,6 +688,124 @@ function playDoneSound(){
   }catch(e){}
 }
 let lastCutDur = 0;
+
+// ---------- 効果音（合成音・試聴・WAV書き出し） ----------
+let seType = 'pop';
+function synthSE(ctx, type, dest){
+  // ctx: AudioContext or OfflineAudioContext。開始時刻0で約0.6秒のSEを構築
+  const t0 = ctx.currentTime + 0.01;
+  const master = ctx.createGain();
+  master.gain.value = 1;
+  master.connect(dest || ctx.destination);
+  const tone = (freq, start, dur, {type='sine', vol=1, slideTo=null} = {}) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t0+start);
+    if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0+start+dur);
+    g.gain.setValueAtTime(0.0001, t0+start);
+    g.gain.exponentialRampToValueAtTime(vol, t0+start+0.012);
+    g.gain.exponentialRampToValueAtTime(0.001, t0+start+dur);
+    o.connect(g); g.connect(master);
+    o.start(t0+start); o.stop(t0+start+dur+0.05);
+  };
+  const noise = (start, dur, {f0=400, f1=4000, vol=0.8} = {}) => {
+    const len = Math.ceil(ctx.sampleRate * dur);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i=0;i<len;i++) ch[i] = (Math.random()*2-1) * (1 - i/len);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2;
+    bp.frequency.setValueAtTime(f0, t0+start);
+    bp.frequency.exponentialRampToValueAtTime(f1, t0+start+dur);
+    const g = ctx.createGain(); g.gain.value = vol;
+    src.connect(bp); bp.connect(g); g.connect(master);
+    src.start(t0+start);
+  };
+  switch(type){
+    case 'pop':     tone(620, 0, 0.14, {type:'sine', vol:1, slideTo:240}); break;
+    case 'pikon':   tone(1318.5, 0, 0.1, {type:'triangle', vol:.9}); tone(1760, 0.1, 0.22, {type:'triangle', vol:.9}); break;
+    case 'whoosh':  noise(0, 0.28, {f0:300, f1:5200, vol:.9}); break;
+    case 'sparkle': tone(1568, 0, 0.3, {type:'triangle', vol:.6}); tone(1975.5, 0.06, 0.3, {type:'triangle', vol:.6}); tone(2637, 0.12, 0.42, {type:'triangle', vol:.7}); break;
+    case 'don':     tone(150, 0, 0.3, {type:'sine', vol:1, slideTo:48}); noise(0, 0.05, {f0:150, f1:600, vol:.5}); break;
+    case 'type':    noise(0, 0.045, {f0:1500, f1:2800, vol:.9}); tone(2400, 0, 0.04, {type:'square', vol:.25}); break;
+  }
+}
+function playSEPreview(){
+  initAudioCtx();
+  if (!audioCtx) return;
+  const g = audioCtx.createGain();
+  g.gain.value = (+document.getElementById('seVol').value)/100;
+  g.connect(audioCtx.destination);
+  synthSE(audioCtx, seType, g);
+}
+async function renderSEWav(vol){
+  const sr = 44100;
+  const off = new OfflineAudioContext(1, Math.ceil(sr*0.7), sr);
+  synthSE(off, seType);
+  const buf = await off.startRendering();
+  const ch = buf.getChannelData(0);
+  const pcm = new Int16Array(ch.length);
+  for (let i=0;i<ch.length;i++){
+    let v = Math.max(-1, Math.min(1, ch[i] * vol));
+    pcm[i] = v < 0 ? v*32768 : v*32767;
+  }
+  const bytes = new Uint8Array(44 + pcm.length*2);
+  const dv = new DataView(bytes.buffer);
+  const wstr = (o, s2) => { for(let i=0;i<s2.length;i++) dv.setUint8(o+i, s2.charCodeAt(i)); };
+  wstr(0,'RIFF'); dv.setUint32(4, 36+pcm.length*2, true); wstr(8,'WAVE');
+  wstr(12,'fmt '); dv.setUint32(16,16,true); dv.setUint16(20,1,true); dv.setUint16(22,1,true);
+  dv.setUint32(24,sr,true); dv.setUint32(28,sr*2,true); dv.setUint16(32,2,true); dv.setUint16(34,16,true);
+  wstr(36,'data'); dv.setUint32(40,pcm.length*2,true);
+  new Int16Array(bytes.buffer, 44).set(pcm);
+  return bytes;
+}
+document.getElementById('seOn').addEventListener('change', e => {
+  document.getElementById('seOpts').style.display = e.target.checked ? 'flex' : 'none';
+});
+document.querySelectorAll('.se-btn').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.se-btn').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  seType = b.dataset.se;
+  playSEPreview();
+}));
+document.getElementById('seVol').addEventListener('input', () => {
+  document.getElementById('seVolVal').textContent = document.getElementById('seVol').value + '%';
+});
+
+// ---------- BGM ----------
+let bgmFile = null;
+const bgmDrop = document.getElementById('bgmDrop');
+const bgmInput = document.getElementById('bgmInput');
+const bgmChip = document.getElementById('bgmChip');
+bgmDrop.addEventListener('click', () => bgmInput.click());
+bgmDrop.addEventListener('dragover', e => { e.preventDefault(); bgmDrop.classList.add('drag'); });
+bgmDrop.addEventListener('dragleave', () => bgmDrop.classList.remove('drag'));
+bgmDrop.addEventListener('drop', e => {
+  e.preventDefault(); bgmDrop.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleBgmFile(e.dataTransfer.files[0]);
+});
+bgmInput.addEventListener('change', e => { if (e.target.files[0]) handleBgmFile(e.target.files[0]); });
+function handleBgmFile(file){
+  bgmFile = file;
+  const au = document.createElement('audio');
+  au.preload = 'metadata';
+  au.src = URL.createObjectURL(file);
+  au.onloadedmetadata = () => {
+    bgmChip.style.display = 'flex';
+    bgmChip.className = 'file-chip';
+    bgmChip.innerHTML = `<span class="name">🎵 ${file.name}</span><span class="dur">${fmtTime(au.duration)} ・ ${fmtSize(file.size)}</span><button class="mini-remove" id="bgmRemove" title="BGMを外す">✕</button>`;
+    document.getElementById('bgmVolRow').style.display = 'flex';
+    document.getElementById('bgmRemove').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      bgmFile = null;
+      bgmChip.style.display = 'none';
+      document.getElementById('bgmVolRow').style.display = 'none';
+      bgmInput.value = '';
+    });
+  };
+}
+document.getElementById('bgmVol').addEventListener('input', () => {
+  document.getElementById('bgmVolVal').textContent = document.getElementById('bgmVol').value + '%';
+});
 
 function ffCall(type, payload, transfer){
   return new Promise((resolve, reject) => {
@@ -874,6 +1037,11 @@ document.querySelectorAll('input[name=speedMode]').forEach(r => r.addEventListen
 let iconObjectUrl = null;
 function handleIconFile(file){
   iconFile = file;
+  iconOriginalFile = null;
+  const rb = document.getElementById('iconRestoreBg');
+  if (rb) rb.disabled = true;
+  const tr = document.getElementById('iconTolRow');
+  if (tr) tr.style.display = 'none';
   if (iconObjectUrl) URL.revokeObjectURL(iconObjectUrl);
   iconObjectUrl = URL.createObjectURL(file);
   iconChip.style.display = 'flex';
@@ -883,6 +1051,7 @@ function handleIconFile(file){
   document.getElementById('iconRemove').addEventListener('click', (ev) => {
     ev.stopPropagation();
     iconFile = null;
+    iconOriginalFile = null;
     iconChip.style.display = 'none';
     iconOpts.style.display = 'none';
     iconInput.value = '';
@@ -894,6 +1063,94 @@ document.querySelectorAll('input[name=iconCorner]').forEach(r => r.addEventListe
 document.getElementById('iconSize').addEventListener('input', () => {
   document.getElementById('iconSizeVal').textContent = iconSizePct() + '%';
   updateIconPreviews();
+});
+
+// ---------- アイコンの背景自動除去（外周から同系色を透明化） ----------
+let iconOriginalFile = null;
+let bgRemoveTimer = null;
+
+async function removeIconBg(){
+  if (!iconOriginalFile) return;
+  const tol = +document.getElementById('iconTol').value;
+  const img = new Image();
+  const url = URL.createObjectURL(iconOriginalFile);
+  await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error('画像の読み込みに失敗')); img.src = url; });
+  URL.revokeObjectURL(url);
+  const MAXD = 1500;
+  const sc = Math.min(1, MAXD / Math.max(img.width, img.height));
+  const cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round(img.width * sc));
+  cv.height = Math.max(1, Math.round(img.height * sc));
+  const ctx = cv.getContext('2d');
+  ctx.drawImage(img, 0, 0, cv.width, cv.height);
+  const W = cv.width, H = cv.height;
+  const im = ctx.getImageData(0, 0, W, H);
+  const d = im.data;
+  // 背景色 = 四隅の平均
+  const corners = [0, (W-1)*4, (H-1)*W*4, ((H-1)*W + W-1)*4];
+  let br=0, bgc=0, bb=0;
+  corners.forEach(o => { br += d[o]; bgc += d[o+1]; bb += d[o+2]; });
+  br/=4; bgc/=4; bb/=4;
+  const tol2 = tol * tol * 3;
+  const dist2 = o => {
+    const dr = d[o]-br, dg = d[o+1]-bgc, db = d[o+2]-bb;
+    return dr*dr + dg*dg + db*db;
+  };
+  // 外周からの塗りつぶし（ロゴ内部の同系色は残す）
+  const visited = new Uint8Array(W*H);
+  const stack = [];
+  for (let x=0;x<W;x++){ stack.push(x); stack.push((H-1)*W + x); }
+  for (let y=0;y<H;y++){ stack.push(y*W); stack.push(y*W + W-1); }
+  while (stack.length){
+    const p = stack.pop();
+    if (visited[p]) continue;
+    visited[p] = 1;
+    const o = p*4;
+    if (d[o+3] === 0) continue;
+    if (dist2(o) > tol2) continue;
+    d[o+3] = 0;
+    const x = p % W, y = (p / W) | 0;
+    if (x > 0) stack.push(p-1);
+    if (x < W-1) stack.push(p+1);
+    if (y > 0) stack.push(p-W);
+    if (y < H-1) stack.push(p+W);
+  }
+  ctx.putImageData(im, 0, 0);
+  const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+  if (!blob) throw new Error('画像の変換に失敗しました');
+  iconFile = new Blob([blob], {type:'image/png'});
+  if (iconObjectUrl) URL.revokeObjectURL(iconObjectUrl);
+  iconObjectUrl = URL.createObjectURL(iconFile);
+  updateIconPreviews();
+}
+document.getElementById('iconRemoveBg').addEventListener('click', async () => {
+  const btn = document.getElementById('iconRemoveBg');
+  try{
+    if (!iconOriginalFile) iconOriginalFile = iconFile;
+    btn.disabled = true; btn.textContent = '⏳ 処理中…';
+    await removeIconBg();
+    document.getElementById('iconRestoreBg').disabled = false;
+    document.getElementById('iconTolRow').style.display = 'flex';
+  }catch(e){
+    alert('背景の除去に失敗しました: ' + errText(e));
+  }finally{
+    btn.disabled = false; btn.textContent = '🪄 背景を自動で消す';
+  }
+});
+document.getElementById('iconRestoreBg').addEventListener('click', () => {
+  if (!iconOriginalFile) return;
+  iconFile = iconOriginalFile;
+  iconOriginalFile = null;
+  if (iconObjectUrl) URL.revokeObjectURL(iconObjectUrl);
+  iconObjectUrl = URL.createObjectURL(iconFile);
+  document.getElementById('iconRestoreBg').disabled = true;
+  document.getElementById('iconTolRow').style.display = 'none';
+  updateIconPreviews();
+});
+document.getElementById('iconTol').addEventListener('input', () => {
+  document.getElementById('iconTolVal').textContent = document.getElementById('iconTol').value;
+  clearTimeout(bgRemoveTimer);
+  bgRemoveTimer = setTimeout(() => { if (iconOriginalFile) removeIconBg().catch(()=>{}); }, 300);
 });
 function checkReady(){
   runBtn.disabled = !(videoFile && apiKeyInput.value.trim().length > 10);
@@ -963,6 +1220,25 @@ async function clearSavedKey(){
   try{ await keyStore.remove(); }catch(e){}
   keyStatus.textContent = '';
 }
+document.getElementById('testKeyBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('testKeyBtn');
+  const key = apiKeyInput.value.trim();
+  if (key.length < 10){ alert('先にAPIキーを入力してください'); return; }
+  btn.disabled = true; btn.textContent = '⏳ テスト中…';
+  try{
+    const r = await fetch('https://api.openai.com/v1/models', {
+      headers: { 'Authorization': 'Bearer ' + key }
+    });
+    if (r.ok) alert('✅ 接続OK！キーも有効です。このまま処理を実行できます。');
+    else if (r.status === 401) alert('❌ 通信はできていますが、APIキーが正しくありません。キーを確認してください。');
+    else if (r.status === 429) alert('⚠️ 通信はできていますが、利用上限に達しています。OpenAIの支払い設定を確認してください。');
+    else alert('⚠️ OpenAIからエラーが返りました（' + r.status + '）');
+  }catch(e){
+    alert('❌ この端末・回線からOpenAI（api.openai.com）に接続できません。\n\n考えられる原因:\n・Wi-Fiルーターやプロバイダのフィルタリング\n・iPhoneのスクリーンタイム（コンテンツ制限）\n・広告ブロック系のアプリ/拡張\n・iCloudプライベートリレー\n\n別のWi-Fiやモバイル回線に切り替えて再度テストしてみてください。');
+  }finally{
+    btn.disabled = false; btn.textContent = '📡 接続テスト（キーと通信の確認）';
+  }
+});
 apiKeyInput.addEventListener('input', () => {
   checkReady();
   keyStatus.textContent = '';
@@ -985,7 +1261,7 @@ durEl.oninput = () => durVal.textContent = parseFloat(durEl.value).toFixed(2) + 
 padEl.oninput = () => padVal.textContent = parseFloat(padEl.value).toFixed(2) + ' 秒';
 
 // ---------- caption font ----------
-let captionFont = 'Noto Sans JP';
+let captionFont = 'Zen Kaku Gothic New';
 const fontBtns = document.querySelectorAll('.font-btn');
 const fontGrid = document.getElementById('fontGrid');
 const CUSTOM_FONTS_KEY = 'cutcap_custom_fonts';
@@ -1077,7 +1353,7 @@ document.getElementById('applyCustomFont').addEventListener('click', async () =>
 applyCaptionFont();
 
 // ---------- caption style (size / position / colors / background / outline) ----------
-const capStyle = { scale: 1, bottom: 6, bg: 0.72, color: '#ffffff', emph: '#f3a53d', outline: [], dropshadow: false, bold: false, grad: null };
+const capStyle = { scale: 1.45, bottom: 6, bg: 0, color: '#ffffff', emph: '#ffe600', outline: [{w:0.14,c:'#000000'}], dropshadow: false, bold: true, grad: null };
 function ringShadow(r, c){
   const pts = [];
   for (let a = 0; a < 16; a++){
@@ -1536,14 +1812,28 @@ async function runPipeline(){
     form.append('model','whisper-1');
     form.append('language','ja');
     form.append('response_format','verbose_json');
+    function uploadWhisper(){
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', 'https://api.openai.com/v1/audio/transcriptions');
+        xhr.setRequestHeader('Authorization', 'Bearer ' + apiKeyInput.value.trim());
+        xhr.timeout = 180000;
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable){
+            const el = document.getElementById('etaText');
+            if (el) el.textContent = '📤 音声を送信中… ' + Math.round(100*ev.loaded/ev.total) + '%（' + fmtSize(ev.total) + '）';
+          }
+        };
+        xhr.onload = () => resolve({ status: xhr.status, text: xhr.responseText });
+        xhr.onerror = () => reject(new Error('neterr'));
+        xhr.ontimeout = () => reject(new Error('neterr'));
+        xhr.send(form);
+      });
+    }
     let res = null, lastNetErr = null;
     for (let attempt = 1; attempt <= 3; attempt++){
       try{
-        res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-          method:'POST',
-          headers: { 'Authorization': `Bearer ${apiKeyInput.value.trim()}` },
-          body: form
-        });
+        res = await uploadWhisper();
         lastNetErr = null;
         break;
       }catch(netErr){
@@ -1552,15 +1842,14 @@ async function runPipeline(){
       }
     }
     if (lastNetErr){
-      throw new Error('音声データの送信に失敗しました（通信エラー）。Wi-Fi接続を確認して、もう一度お試しください。iPhoneの「省データモード」がONの場合はOFFにしてください。');
+      throw new Error('音声データの送信に失敗しました（通信エラー）。「使用パスコード」欄の📡接続テストボタンで原因を確認できます。別のWi-Fi/モバイル回線への切り替えもお試しください。');
     }
-    if (!res.ok){
+    if (res.status < 200 || res.status >= 300){
       if (res.status === 401) throw new Error('APIキーが正しくありません。使用パスコード（OpenAI APIキー）を確認してください。');
       if (res.status === 429) throw new Error('APIの利用上限に達しています。OpenAIの支払い設定・利用状況を確認してください。');
-      const errBody = await res.text();
-      throw new Error('Whisper APIエラー: ' + res.status + ' ' + errBody.slice(0,200));
+      throw new Error('Whisper APIエラー: ' + res.status + ' ' + (res.text||'').slice(0,200));
     }
-    const data = await res.json();
+    const data = JSON.parse(res.text);
     setStep('whisper','done');
 
     // ---- build captions ----
@@ -1639,10 +1928,6 @@ function renderCaptionList(){
     row.querySelector('.del').addEventListener('click', (e) => {
       e.stopPropagation();
       captions.splice(i,1); srtText = rebuildSrt(); renderCaptionList();
-    });
-    row.addEventListener('click', () => {
-      document.getElementById('player').currentTime = c.start;
-      document.getElementById('player').play();
     });
     list.appendChild(row);
   });
@@ -1807,8 +2092,50 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
       prev = '[v'+i+']';
     }
     fc = fc.slice(0, -1);
-    await ffmpeg.exec([...inputArgs, '-filter_complex', fc, '-map','[vout]','-map','0:a?',
-      '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','copy','burned.mp4']);
+    // 効果音・BGMの合成
+    const seEnabled = document.getElementById('seOn').checked && captions.length > 0;
+    const bgmEnabled = !!bgmFile;
+    let audioMap = '0:a?', audioCodec = ['-c:a','copy'];
+    let bgmName = null;
+    if (seEnabled || bgmEnabled){
+      const mixIns = ['[0:a]'];
+      let nextIdx = captions.length + 1;
+      if (seEnabled){
+        const seVol = (+document.getElementById('seVol').value)/100;
+        const seWav = await renderSEWav(seVol);
+        await ffmpeg.writeFile('se.wav', seWav);
+        inputArgs.push('-i','se.wav');
+        const seIdx = nextIdx++;
+        const n = captions.length;
+        let splitOuts = '';
+        for (let i=0;i<n;i++) splitOuts += '[se'+i+']';
+        fc += `;[${seIdx}:a]asplit=${n}${splitOuts}`;
+        captions.forEach((c,i) => {
+          const ms = Math.max(0, Math.round(c.start*1000));
+          fc += `;[se${i}]adelay=${ms}|${ms}[d${i}]`;
+          mixIns.push('[d'+i+']');
+        });
+      }
+      if (bgmEnabled){
+        const t = (bgmFile.type||'').toLowerCase();
+        const bext = t.includes('wav') ? 'wav' : t.includes('m4a')||t.includes('mp4')||t.includes('aac') ? 'm4a' : 'mp3';
+        bgmName = 'bgm.' + bext;
+        await ffmpeg.writeFile(bgmName, new Uint8Array(await bgmFile.arrayBuffer()));
+        inputArgs.push('-i', bgmName);
+        const bIdx = nextIdx++;
+        const bgmVol = (+document.getElementById('bgmVol').value)/100;
+        const dur = Math.max(3, lastCutDur || 60);
+        fc += `;[${bIdx}:a]aloop=loop=-1:size=2000000000,atrim=0:${(dur+5).toFixed(2)},volume=${bgmVol.toFixed(2)},afade=t=out:st=${Math.max(0, dur-2).toFixed(2)}:d=2[bgma]`;
+        mixIns.push('[bgma]');
+      }
+      fc += `;${mixIns.join('')}amix=inputs=${mixIns.length}:duration=first:normalize=0[aout]`;
+      audioMap = '[aout]';
+      audioCodec = ['-c:a','aac'];
+    }
+    await ffmpeg.exec([...inputArgs, '-filter_complex', fc, '-map','[vout]','-map',audioMap,
+      '-c:v','libx264','-preset','ultrafast','-crf','23', ...audioCodec, 'burned.mp4']);
+    if (seEnabled){ try{ await ffmpeg.deleteFile('se.wav'); }catch(e){} }
+    if (bgmName){ try{ await ffmpeg.deleteFile(bgmName); }catch(e){} }
     const out = await ffmpeg.readFile('burned.mp4');
     for (let i = 0; i < captions.length; i++){ try{ await ffmpeg.deleteFile('cap'+i+'.png'); }catch(e){} }
     try{ await ffmpeg.deleteFile('burned.mp4'); }catch(e){}
