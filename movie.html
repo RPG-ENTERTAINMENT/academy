@@ -129,14 +129,15 @@
   .frame{position:relative;display:inline-block;max-width:100%;line-height:0;}
   .frame video{display:block;max-width:100%;max-height:74vh;width:auto;height:auto;background:#000;}
   .cap-overlay{
-    position:absolute;left:0;right:0;bottom:6%;display:flex;justify-content:center;pointer-events:none;padding:0 6%;
+    position:absolute;left:0;right:0;bottom:var(--cap-bottom,6%);display:flex;justify-content:center;pointer-events:none;padding:0 6%;
   }
   .cap-overlay .box{
-    background:rgba(6,12,18,.72);color:#fff;padding:8px 18px;border-radius:8px;font-size:16px;font-weight:500;
+    background:rgba(6,12,18,var(--cap-bg,.72));color:var(--cap-color,#fff);padding:8px 18px;border-radius:8px;
+    font-size:calc(16px * var(--cap-scale,1));font-weight:500;
     text-align:center;max-width:100%;line-height:1.5;border:1px solid rgba(45,216,198,.25);
     font-family:var(--cap-font);
   }
-  .emph{font-size:1.55em;font-weight:900;color:var(--amber);display:inline-block;line-height:1.2;}
+  .emph{font-size:1.55em;font-weight:900;color:var(--emph-color,var(--amber));display:inline-block;line-height:1.2;}
 
   .silence-map{
     height:38px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);position:relative;overflow:hidden;
@@ -198,10 +199,26 @@
     padding:18px 12px;display:flex;justify-content:center;align-items:center;
   }
   .font-preview .box{
-    background:rgba(6,12,18,.72);color:#fff;padding:7px 14px;border-radius:8px;
-    font-size:14px;font-weight:500;text-align:center;line-height:1.5;
+    background:rgba(6,12,18,var(--cap-bg,.72));color:var(--cap-color,#fff);padding:7px 14px;border-radius:8px;
+    font-size:calc(14px * var(--cap-scale,1));font-weight:500;text-align:center;line-height:1.5;
     border:1px solid rgba(45,216,198,.25);font-family:var(--cap-font);
   }
+
+  .radio-row{display:flex;flex-direction:column;gap:6px;font-size:12.5px;}
+  .radio-row label{display:flex;align-items:center;gap:7px;cursor:pointer;color:var(--text);}
+  .radio-row input[type=radio]{accent-color:var(--teal);}
+  .inline-num{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-dim);padding-left:23px;}
+  .inline-num input[type=number]{
+    width:80px;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:7px 9px;color:var(--text);font-family:'JetBrains Mono';font-size:12.5px;
+  }
+  .inline-num input[type=number]:focus{outline:none;border-color:var(--teal);}
+  .mini-remove{background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:13px;padding:2px 6px;flex:none;}
+  .mini-remove:hover{color:var(--danger);}
+  .color-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .color-item{display:flex;align-items:center;justify-content:space-between;gap:8px;
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:11.5px;color:var(--text-dim);}
+  .color-item input[type=color]{width:30px;height:24px;border:none;background:none;padding:0;cursor:pointer;}
 
   .badge{
     display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);
@@ -218,7 +235,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v1.8</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v2.0</span></small></div>
 </div>
 
 <div class="layout">
@@ -236,7 +253,25 @@
     </div>
 
     <div class="block">
-      <div class="block-title"><span class="num">2</span>OpenAI APIキー</div>
+      <div class="block-title"><span class="num">2</span>アイキャッチ動画（任意）</div>
+      <div class="drop" id="eyeDrop">
+        <input type="file" id="eyeInput" accept="video/*">
+        <div class="ic">✨</div>
+        <div class="t1">アイキャッチを追加</div>
+        <div class="t2">場面転換などに挟む短い動画（サイズは自動調整）</div>
+      </div>
+      <div id="eyeChip" style="display:none"></div>
+      <div class="radio-row" id="eyeModeRow" style="display:none">
+        <label><input type="radio" name="eyeMode" value="auto" checked>おまかせ（動画の先頭に挿入）</label>
+        <label><input type="radio" name="eyeMode" value="manual">位置を自分で指定</label>
+        <div class="inline-num" id="eyeTimeRow" style="display:none">
+          <span>元動画の</span><input type="number" id="eyeTime" min="0" step="0.5" value="0"><span>秒地点に挿入</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title"><span class="num">3</span>OpenAI APIキー</div>
       <input type="password" id="apiKey" placeholder="sk-...">
       <div class="key-row">
         <label class="key-toggle"><input type="checkbox" id="saveKeyToggle">次回から自動入力する（この端末に保存）</label>
@@ -246,7 +281,7 @@
     </div>
 
     <div class="block">
-      <div class="block-title"><span class="num">3</span>無音カットの設定</div>
+      <div class="block-title"><span class="num">4</span>無音カットの設定</div>
       <div class="slider-row">
         <div class="lbl"><span>無音と判定する感度</span><b id="thVal">-30 dB</b></div>
         <input type="range" id="threshold" min="-50" max="-15" value="-30" step="1">
@@ -262,7 +297,7 @@
     </div>
 
     <div class="block">
-      <div class="block-title"><span class="num">4</span>字幕フォント</div>
+      <div class="block-title"><span class="num">5</span>字幕デザイン</div>
       <div class="font-presets" id="fontPresets">
         <button type="button" class="font-btn active" data-font="Noto Sans JP" style="font-family:'Noto Sans JP'">標準</button>
         <button type="button" class="font-btn" data-font="Zen Kaku Gothic New" style="font-family:'Zen Kaku Gothic New'">インパクト</button>
@@ -273,6 +308,22 @@
         <button type="button" class="font-apply" id="applyCustomFont">適用</button>
       </div>
       <div class="hint">字幕内で <b>**大事な言葉**</b> のように囲むと、その部分だけ大きく表示されます</div>
+      <div class="slider-row">
+        <div class="lbl"><span>文字サイズ</span><b id="capSizeVal">100%</b></div>
+        <input type="range" id="capSize" min="60" max="160" value="100" step="5">
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><span>表示位置（下からの高さ）</span><b id="capPosVal">6%</b></div>
+        <input type="range" id="capPos" min="2" max="40" value="6" step="1">
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><span>背景の濃さ</span><b id="capBgVal">72%</b></div>
+        <input type="range" id="capBg" min="0" max="100" value="72" step="5">
+      </div>
+      <div class="color-grid">
+        <div class="color-item"><span>文字色</span><input type="color" id="capColor" value="#ffffff"></div>
+        <div class="color-item"><span>強調色</span><input type="color" id="emphColor" value="#f3a53d"></div>
+      </div>
       <div class="font-preview-label">プレビュー（実際の字幕の見え方）</div>
       <div class="font-preview" id="fontPreview"></div>
     </div>
@@ -441,6 +492,7 @@ function errText(e){
 
 let videoFile = null;
 let videoDuration = 0;
+let videoW = 0, videoH = 0;
 let captions = []; // {start, end, text}
 let cutVideoBlobUrl = null;
 let cutVideoBytes = null;
@@ -470,12 +522,58 @@ function handleFile(file){
   probe.src = url;
   probe.onloadedmetadata = () => {
     videoDuration = probe.duration;
+    videoW = probe.videoWidth; videoH = probe.videoHeight;
     fileChip.style.display = 'flex';
     fileChip.className = 'file-chip';
     fileChip.innerHTML = `<span class="name">📄 ${file.name}</span><span class="dur">${fmtTime(videoDuration)} ・ ${fmtSize(file.size)}</span>`;
+    const et = document.getElementById('eyeTime');
+    et.max = Math.floor(videoDuration);
     checkReady();
   };
 }
+
+// ---------- eyecatch video (optional) ----------
+let eyecatchFile = null;
+let eyecatchDuration = 0;
+const eyeDrop = document.getElementById('eyeDrop');
+const eyeInput = document.getElementById('eyeInput');
+const eyeChip = document.getElementById('eyeChip');
+const eyeModeRow = document.getElementById('eyeModeRow');
+const eyeTimeRow = document.getElementById('eyeTimeRow');
+
+eyeDrop.addEventListener('click', () => eyeInput.click());
+eyeDrop.addEventListener('dragover', e => { e.preventDefault(); eyeDrop.classList.add('drag'); });
+eyeDrop.addEventListener('dragleave', () => eyeDrop.classList.remove('drag'));
+eyeDrop.addEventListener('drop', e => {
+  e.preventDefault(); eyeDrop.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleEyeFile(e.dataTransfer.files[0]);
+});
+eyeInput.addEventListener('change', e => { if (e.target.files[0]) handleEyeFile(e.target.files[0]); });
+
+function handleEyeFile(file){
+  eyecatchFile = file;
+  const probe = document.createElement('video');
+  probe.preload = 'metadata';
+  probe.src = URL.createObjectURL(file);
+  probe.onloadedmetadata = () => {
+    eyecatchDuration = probe.duration;
+    eyeChip.style.display = 'flex';
+    eyeChip.className = 'file-chip';
+    eyeChip.innerHTML = `<span class="name">✨ ${file.name}</span><span class="dur">${fmtTime(eyecatchDuration)} ・ ${fmtSize(file.size)}</span><button class="mini-remove" id="eyeRemove" title="アイキャッチを外す">✕</button>`;
+    eyeModeRow.style.display = 'flex';
+    document.getElementById('eyeRemove').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      eyecatchFile = null; eyecatchDuration = 0;
+      eyeChip.style.display = 'none';
+      eyeModeRow.style.display = 'none';
+      eyeInput.value = '';
+    });
+  };
+}
+document.querySelectorAll('input[name=eyeMode]').forEach(r => r.addEventListener('change', () => {
+  const manual = document.querySelector('input[name=eyeMode]:checked').value === 'manual';
+  eyeTimeRow.style.display = manual ? 'flex' : 'none';
+}));
 function checkReady(){
   runBtn.disabled = !(videoFile && apiKeyInput.value.trim().length > 10);
 }
@@ -595,6 +693,38 @@ document.getElementById('applyCustomFont').addEventListener('click', () => {
 });
 applyCaptionFont();
 
+// ---------- caption style (size / position / colors / background) ----------
+const capStyle = { scale: 1, bottom: 6, bg: 0.72, color: '#ffffff', emph: '#f3a53d' };
+function applyCapStyle(){
+  const r = document.documentElement.style;
+  r.setProperty('--cap-scale', capStyle.scale);
+  r.setProperty('--cap-bottom', capStyle.bottom + '%');
+  r.setProperty('--cap-bg', capStyle.bg);
+  r.setProperty('--cap-color', capStyle.color);
+  r.setProperty('--emph-color', capStyle.emph);
+}
+const capSizeEl = document.getElementById('capSize');
+const capPosEl = document.getElementById('capPos');
+const capBgEl = document.getElementById('capBg');
+capSizeEl.oninput = () => {
+  capStyle.scale = capSizeEl.value / 100;
+  document.getElementById('capSizeVal').textContent = capSizeEl.value + '%';
+  applyCapStyle();
+};
+capPosEl.oninput = () => {
+  capStyle.bottom = +capPosEl.value;
+  document.getElementById('capPosVal').textContent = capPosEl.value + '%';
+  applyCapStyle();
+};
+capBgEl.oninput = () => {
+  capStyle.bg = capBgEl.value / 100;
+  document.getElementById('capBgVal').textContent = capBgEl.value + '%';
+  applyCapStyle();
+};
+document.getElementById('capColor').addEventListener('input', e => { capStyle.color = e.target.value; applyCapStyle(); });
+document.getElementById('emphColor').addEventListener('input', e => { capStyle.emph = e.target.value; applyCapStyle(); });
+applyCapStyle();
+
 // ---------- step UI ----------
 let currentStage = '';
 function setStep(name, state){ // state: 'active' | 'done'
@@ -690,20 +820,78 @@ async function runPipeline(){
 
     renderSilenceMap(silences, videoDuration);
 
-    // ---- cut (trim + concat) ----
+    // ---- cut (trim + concat, optionally inserting the eyecatch) ----
     setStep('cut','active');
+    const useEye = !!eyecatchFile;
+
+    if (useEye){
+      // アイキャッチをメイン動画と同じ解像度・形式に正規化（音声が無ければ無音を付与）
+      await ffmpeg.writeFile('eyesrc', new Uint8Array(await eyecatchFile.arrayBuffer()));
+      ffmpegLogBuffer = [];
+      try{ await ffmpeg.exec(['-i','eyesrc']); }catch(e){}
+      const eyeHasAudio = /Stream .*Audio/.test(ffmpegLogBuffer.join('\n'));
+      let W = videoW - (videoW % 2), H = videoH - (videoH % 2);
+      if (!W || !H){ W = 1280; H = 720; }
+      const vf = `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30,format=yuv420p`;
+      const eyeArgs = eyeHasAudio
+        ? ['-i','eyesrc','-vf',vf,'-c:v','libx264','-preset','ultrafast','-crf','23',
+           '-c:a','aac','-ar','44100','-ac','2','eyecatch.mp4']
+        : ['-i','eyesrc','-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=44100','-shortest',
+           '-vf',vf,'-c:v','libx264','-preset','ultrafast','-crf','23',
+           '-map','0:v:0','-map','1:a:0','-c:a','aac','eyecatch.mp4'];
+      await ffmpeg.exec(eyeArgs);
+      try{ await ffmpeg.deleteFile('eyesrc'); }catch(e){}
+    }
+
+    // セグメント列を構築（アイキャッチの挿入位置を反映）
+    let segments = keep.map(k => ({type:'main', start:k.start, end:k.end}));
+    if (useEye){
+      const mode = document.querySelector('input[name=eyeMode]:checked').value;
+      let insertAt = 0;
+      if (mode === 'manual'){
+        insertAt = Math.max(0, Math.min(videoDuration, parseFloat(document.getElementById('eyeTime').value) || 0));
+      }
+      const out = [];
+      let placed = false;
+      for (const seg of segments){
+        if (!placed && insertAt <= seg.start){
+          out.push({type:'eye'}); placed = true;
+        } else if (!placed && insertAt > seg.start && insertAt < seg.end){
+          out.push({type:'main', start:seg.start, end:insertAt});
+          out.push({type:'eye'}); placed = true;
+          out.push({type:'main', start:insertAt, end:seg.end});
+          continue;
+        }
+        out.push(seg);
+      }
+      if (!placed) out.push({type:'eye'});
+      segments = out;
+    }
+
+    const AFMT = 'aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo';
+    const VFMT = 'setsar=1' + (useEye ? ',fps=30,format=yuv420p' : '');
     let filterParts = [];
     let concatInputs = '';
-    keep.forEach((k, i) => {
-      filterParts.push(`[0:v]trim=start=${k.start}:end=${k.end},setpts=PTS-STARTPTS[v${i}]`);
-      filterParts.push(`[0:a]atrim=start=${k.start}:end=${k.end},asetpts=PTS-STARTPTS[a${i}]`);
+    segments.forEach((seg, i) => {
+      if (seg.type === 'main'){
+        filterParts.push(`[0:v]trim=start=${seg.start}:end=${seg.end},setpts=PTS-STARTPTS,${VFMT}[v${i}]`);
+        filterParts.push(`[0:a]atrim=start=${seg.start}:end=${seg.end},asetpts=PTS-STARTPTS,${AFMT}[a${i}]`);
+      } else {
+        filterParts.push(`[1:v]setpts=PTS-STARTPTS,${VFMT}[v${i}]`);
+        filterParts.push(`[1:a]asetpts=PTS-STARTPTS,${AFMT}[a${i}]`);
+      }
       concatInputs += `[v${i}][a${i}]`;
     });
-    const filterComplex = filterParts.join(';') + `;${concatInputs}concat=n=${keep.length}:v=1:a=1[outv][outa]`;
-    await ffmpeg.exec(['-i','input.mp4','-filter_complex', filterComplex, '-map','[outv]','-map','[outa]',
-      '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4']);
+    const filterComplex = filterParts.join(';') + `;${concatInputs}concat=n=${segments.length}:v=1:a=1[outv][outa]`;
+    const cutArgs = useEye
+      ? ['-i','input.mp4','-i','eyecatch.mp4','-filter_complex', filterComplex, '-map','[outv]','-map','[outa]',
+         '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4']
+      : ['-i','input.mp4','-filter_complex', filterComplex, '-map','[outv]','-map','[outa]',
+         '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4'];
+    await ffmpeg.exec(cutArgs);
     cutVideoBytes = await ffmpeg.readFile('cut.mp4');
     try{ await ffmpeg.deleteFile('input.mp4'); }catch(e){} // メモリ節約（iPhone対策）
+    if (useEye){ try{ await ffmpeg.deleteFile('eyecatch.mp4'); }catch(e){} }
     cutVideoBlobUrl = URL.createObjectURL(new Blob([cutVideoBytes.buffer], {type:'video/mp4'}));
     const player = document.getElementById('player');
     player.src = cutVideoBlobUrl;
@@ -881,9 +1069,12 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
       return s.replace(/\\/g,'\\\\').replace(/:/g,'\\:').replace(/'/g,"\u2019")
         .replace(/,/g,'\\,').replace(/\[/g,'\\[').replace(/\]/g,'\\]').replace(/%/g,'\\%');
     }
+    const hex = h => '0x' + h.replace('#','');
+    const fs = (0.045 * capStyle.scale).toFixed(4);
+    const bottomRatio = (capStyle.bottom / 100).toFixed(3);
     const chain = captions.map(c =>
       `drawtext=fontfile=/font.ttf:text='${esc(c.text.replace(/\*\*/g,''))}':enable='between(t,${c.start},${c.end})':`+
-      `x=(w-text_w)/2:y=h-h*0.16:fontsize=h*0.045:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=14`
+      `x=(w-text_w)/2:y=h-th-h*${bottomRatio}:fontsize=h*${fs}:fontcolor=${hex(capStyle.color)}:box=1:boxcolor=black@${capStyle.bg.toFixed(2)}:boxborderw=14`
     ).join(',');
     await ffmpeg.exec(['-i','cut.mp4','-vf', chain, '-c:a','copy','burned.mp4']);
     const out = await ffmpeg.readFile('burned.mp4');
