@@ -6,38 +6,38 @@
 <script src="./coi-serviceworker.js"></script>
 <title>自動動画カット&字幕生成ソフト</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Kosugi+Maru&family=Shippori+Mincho:wght@600&family=M+PLUS+Rounded+1c:wght@500;800&family=Yusei+Magic&family=DotGothic16&family=RocknRoll+One&family=Reggae+One&family=Zen+Maru+Gothic:wght@500;700&family=Hachi+Maru+Pop&family=Mochiy+Pop+One&family=Rampart+One&family=Train+One&family=Stick&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Kosugi+Maru&family=Shippori+Mincho:wght@400;500;600;700&family=M+PLUS+Rounded+1c:wght@500;800&family=Yusei+Magic&family=DotGothic16&family=RocknRoll+One&family=Reggae+One&family=Zen+Maru+Gothic:wght@500;700&family=Hachi+Maru+Pop&family=Mochiy+Pop+One&family=Rampart+One&family=Train+One&family=Stick&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#0c141c;
-    --panel:#121d28;
-    --panel-2:#182634;
-    --line: #24374a;
-    --teal:#2dd8c6;
-    --teal-dim: #1a8f83;
-    --amber:#f3a53d;
-    --text:#e7eef3;
-    --text-dim:#8ca2b4;
-    --danger:#e06666;
+    --ink:#ffffff;
+    --panel:#ffffff;
+    --panel-2:#ffffff;
+    --line: #d6d6dc;
+    --teal:#1a1a1a;
+    --teal-dim: #55555e;
+    --amber:#6b6b75;
+    --text:#1a1a1a;
+    --text-dim:#8f8f98;
+    --danger:#c0392b;
     --cap-font: 'Noto Sans JP', sans-serif;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;background:var(--ink);color:var(--text);font-family:'Noto Sans JP',sans-serif;height:100%;}
-  ::selection{background:var(--teal);color:#00201c;}
+  html,body{margin:0;padding:0;background:var(--ink);color:var(--text);font-family:'Shippori Mincho','Noto Sans JP',serif;height:100%;}
+  ::selection{background:#1a1a1a;color:#fff;}
 
   .topbar{
     display:flex;align-items:center;gap:14px;
     padding:16px 28px;border-bottom:1px solid var(--line);
-    background:linear-gradient(180deg,#0e1822,#0c141c);
+    background:#fff;
   }
   .mark{
-    width:34px;height:34px;border-radius:9px;
-    background:conic-gradient(from 210deg, var(--teal), var(--amber), var(--teal));
+    width:34px;height:34px;border-radius:8px;
+    background:#1a1a1a;
     display:flex;align-items:center;justify-content:center;
-    font-family:'Zen Kaku Gothic New',sans-serif;font-weight:900;color:#04120f;font-size:18px;
+    font-family:'Shippori Mincho',serif;font-weight:700;color:#fff;font-size:17px;
     flex:none;
   }
-  .brand{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:900;font-size:19px;letter-spacing:.02em;}
+  .brand{font-family:'Shippori Mincho',serif;font-weight:600;font-size:19px;letter-spacing:.06em;}
   .brand small{display:block;font-family:'Noto Sans JP';font-weight:400;font-size:11.5px;color:var(--text-dim);letter-spacing:.04em;margin-top:1px;}
 
   .layout{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 68px);}
@@ -51,8 +51,8 @@
   }
   .block{display:flex;flex-direction:column;gap:10px;}
   .block-title{
-    font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:13px;
-    color:var(--teal);letter-spacing:.06em;display:flex;align-items:center;gap:8px;
+    font-family:'Shippori Mincho',serif;font-weight:600;font-size:13.5px;
+    color:var(--text);letter-spacing:.1em;display:flex;align-items:center;gap:8px;
   }
   .block-title .num{
     width:18px;height:18px;border-radius:5px;background:var(--panel-2);border:1px solid var(--line);
@@ -62,9 +62,9 @@
 
   .drop{
     border:1.5px dashed var(--line);border-radius:12px;padding:22px 14px;text-align:center;
-    cursor:pointer;transition:.15s;background:var(--panel-2);
+    cursor:pointer;transition:.15s;background:#fafafa;
   }
-  .drop:hover, .drop.drag{border-color:var(--teal);background:#132530;}
+  .drop:hover, .drop.drag{border-color:#1a1a1a;background:#f4f4f6;}
   .drop input{display:none;}
   .drop .ic{font-size:22px;margin-bottom:6px;}
   .drop .t1{font-size:13px;color:var(--text);}
@@ -96,21 +96,21 @@
 
   .run-btn{
     margin-top:4px;
-    background:linear-gradient(135deg,var(--teal),#1fb3a3);color:#04211c;border:none;border-radius:10px;
-    padding:13px;font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:14px;cursor:pointer;
-    transition:.15s;letter-spacing:.02em;
+    background:#1f1f23;color:#fff;border:none;border-radius:8px;
+    padding:16px;font-family:'Shippori Mincho',serif;font-weight:600;font-size:15px;cursor:pointer;
+    transition:.15s;letter-spacing:.14em;
   }
-  .run-btn:hover:not(:disabled){filter:brightness(1.08);}
+  .run-btn:hover:not(:disabled){background:#000;}
   .run-btn:disabled{opacity:.4;cursor:not-allowed;filter:none;}
 
   .steps{display:flex;flex-direction:column;gap:7px;font-size:12px;}
   .step{display:flex;align-items:center;gap:8px;color:var(--text-dim);}
   .step .dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;}
   .step.active{color:var(--text);}
-  .step.active .dot{background:var(--amber);animation:pulse 1s infinite;}
+  .step.active .dot{background:#1a1a1a;animation:pulse 1s infinite;}
   .step.done{color:var(--teal);}
   .step.done .dot{background:var(--teal);}
-  .eta{font-family:'JetBrains Mono';font-size:12.5px;color:var(--amber);min-height:17px;}
+  .eta{font-family:'JetBrains Mono';font-size:12.5px;color:#1a1a1a;min-height:17px;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
 
   .main{padding:26px 30px;display:flex;flex-direction:column;gap:20px;overflow-y:auto;}
@@ -118,8 +118,8 @@
     flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
     color:var(--text-dim);text-align:center;
   }
-  .empty .big{font-family:'Zen Kaku Gothic New';font-size:22px;color:var(--text);font-weight:700;}
-  .empty .big span{color:var(--teal);}
+  .empty .big{font-family:'Shippori Mincho',serif;font-size:22px;color:var(--text);font-weight:600;letter-spacing:.06em;}
+  .empty .big span{border-bottom:2px solid #1a1a1a;}
 
   .stage{display:none;grid-template-columns:1fr 380px;gap:24px;}
   .stage.show{display:grid;}
@@ -134,18 +134,18 @@
   }
   .cap-overlay .box{
     background:rgba(6,12,18,var(--cap-bg,.72));color:var(--cap-color,#fff);padding:8px 18px;border-radius:8px;
-    font-size:calc(16px * var(--cap-scale,1));font-weight:500;
+    font-size:calc(16px * var(--cap-scale,1));font-weight:var(--cap-weight,500);
     text-align:center;max-width:100%;line-height:1.5;border:1px solid rgba(45,216,198,.25);
     font-family:var(--cap-font);text-shadow:var(--cap-shadow,none);white-space:pre-line;
   }
   .emph{font-size:1.55em;font-weight:900;color:var(--emph-color,var(--amber));display:inline-block;line-height:1.2;}
 
   .silence-map{
-    height:38px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);position:relative;overflow:hidden;
+    height:38px;border-radius:8px;background:#f7f7f9;border:1px solid var(--line);position:relative;overflow:hidden;
   }
-  .silence-map .seg{position:absolute;top:0;bottom:0;background:linear-gradient(180deg,var(--teal-dim),#0f5f57);}
-  .silence-map .seg:hover{background:linear-gradient(180deg,var(--teal),var(--teal-dim));}
-  .silence-map .cut{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,#1a2531,#1a2531 4px,#161f29 4px,#161f29 8px);}
+  .silence-map .seg{position:absolute;top:0;bottom:0;background:#c9c9d3;}
+  .silence-map .seg:hover{background:#b5b5c1;}
+  .silence-map .cut{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,#f1f1f4,#f1f1f4 4px,#e9e9ee 4px,#e9e9ee 8px);}
   .map-caption{font-size:11px;color:var(--text-dim);display:flex;justify-content:space-between;}
   .map-caption b{color:var(--teal);font-weight:500;}
 
@@ -155,15 +155,15 @@
     padding:11px 12px;border-radius:9px;font-size:12.5px;cursor:pointer;font-family:'Noto Sans JP';
     display:flex;align-items:center;justify-content:center;gap:7px;transition:.15s;
   }
-  .xbtn:hover:not(:disabled){border-color:var(--teal);color:var(--teal);}
+  .xbtn:hover:not(:disabled){border-color:#1a1a1a;color:#1a1a1a;}
   .xbtn:disabled{opacity:.35;cursor:not-allowed;}
-  .xbtn.primary{background:var(--teal);color:#04211c;border-color:var(--teal);font-weight:700;}
-  .xbtn.primary:hover{filter:brightness(1.08);}
+  .xbtn.primary{background:#1f1f23;color:#fff;border-color:#1f1f23;font-weight:600;font-family:'Shippori Mincho',serif;letter-spacing:.06em;}
+  .xbtn.primary:hover{background:#000;color:#fff;}
 
   .timeline-title{
     display:flex;align-items:center;justify-content:space-between;
   }
-  .timeline-title .t{font-family:'Zen Kaku Gothic New';font-weight:700;font-size:14px;}
+  .timeline-title .t{font-family:'Shippori Mincho',serif;font-weight:600;font-size:14.5px;letter-spacing:.08em;}
   .timeline-title .n{font-size:11.5px;color:var(--text-dim);font-family:'JetBrains Mono';}
 
   .caption-list{display:flex;flex-direction:column;gap:8px;max-height:640px;overflow-y:auto;padding-right:4px;}
@@ -172,7 +172,7 @@
     cursor:pointer;transition:.12s;
   }
   .cap-row:hover{border-color:#33506322;}
-  .cap-row.playing{border-color:var(--teal);background:#122c2a;}
+  .cap-row.playing{border-color:#1a1a1a;background:#f7f7f9;}
   .cap-row .idx{font-family:'JetBrains Mono';font-size:11px;color:var(--text-dim);flex:none;width:22px;padding-top:2px;}
   .cap-row .body{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;}
   .cap-row .time{font-family:'JetBrains Mono';font-size:10.5px;color:var(--amber);}
@@ -188,7 +188,7 @@
   .font-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:8px;
     padding:10px 4px;font-size:12.5px;cursor:pointer;transition:.15s;text-align:center;line-height:1.3;}
   .font-btn:hover{border-color:var(--teal);}
-  .font-btn.active{border-color:var(--teal);background:#123531;}
+  .font-btn.active{border-color:#1a1a1a;background:#f5f5f7;}
   .src-preview{width:100%;max-height:200px;border-radius:10px;border:1px solid var(--line);background:#000;display:none;}
   .font-custom-row{display:flex;gap:6px;}
   .font-custom-row input{flex:1;}
@@ -200,30 +200,47 @@
   .ar-btn{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text-dim);border-radius:8px;
     padding:7px 4px;font-size:11.5px;cursor:pointer;transition:.15s;}
   .ar-btn:hover{border-color:var(--teal);}
-  .ar-btn.active{border-color:var(--teal);background:#123531;color:var(--teal);}
-  .pos-editor{position:relative;background:#000;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:0 auto;}
+  .ar-btn.active{border-color:#1a1a1a;background:#f5f5f7;color:#1a1a1a;}
+  .pos-editor{position:relative;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin:0 auto;}
   .pos-editor.wide{width:100%;aspect-ratio:16/9;}
   .pos-editor.tall{height:320px;aspect-ratio:9/16;}
   .pos-editor .box{
     position:absolute;left:50%;transform:translateX(-50%);bottom:var(--cap-bottom,6%);
     background:rgba(6,12,18,var(--cap-bg,.72));color:var(--cap-color,#fff);padding:6px 12px;border-radius:8px;
-    font-size:calc(12px * var(--cap-scale,1));font-weight:500;text-align:center;line-height:1.5;
-    border:1px dashed rgba(45,216,198,.55);font-family:var(--cap-font);text-shadow:var(--cap-shadow,none);
+    font-size:calc(12px * var(--cap-scale,1));font-weight:var(--cap-weight,500);text-align:center;line-height:1.5;
+    border:1px dashed rgba(0,0,0,.35);font-family:var(--cap-font);text-shadow:var(--cap-shadow,none);
     cursor:grab;touch-action:none;user-select:-webkit-user-select;user-select:none;-webkit-user-select:none;
     max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .pos-editor .box:active{cursor:grabbing;border-style:solid;}
+  .corner-icon{position:absolute;pointer-events:none;display:none;border-radius:8%;}
+  .corner-icon.ic-tl{top:2%;left:2%;}
+  .corner-icon.ic-tr{top:2%;right:2%;}
+  .corner-icon.ic-bl{bottom:2%;left:2%;}
+  .corner-icon.ic-br{bottom:2%;right:2%;}
+  .corner-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12.5px;}
+  .corner-grid label{display:flex;align-items:center;gap:6px;cursor:pointer;background:var(--panel-2);
+    border:1px solid var(--line);border-radius:8px;padding:8px 10px;}
+  .corner-grid input[type=radio]{accent-color:var(--teal);}
+  .cap-gradient .cap-inner{background-image:var(--cap-grad);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+  .cap-gradient .cap-inner .emph{-webkit-text-fill-color:var(--emph-color);}
   .my-presets{display:flex;flex-wrap:wrap;gap:7px;}
   .my-preset{display:inline-flex;align-items:center;gap:6px;background:var(--panel-2);border:1px solid var(--line);
     border-radius:16px;padding:6px 8px 6px 12px;font-size:12px;cursor:pointer;color:var(--text);transition:.15s;}
   .my-preset:hover{border-color:var(--teal);}
   .my-preset .x{color:var(--text-dim);font-size:11px;padding:0 3px;}
   .my-preset .x:hover{color:var(--danger);}
-  .font-select{
-    width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
-    padding:10px 11px;color:var(--text);font-size:13px;font-family:var(--cap-font);
+  .font-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:280px;overflow-y:auto;padding-right:2px;}
+  .fontg-btn{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:8px;cursor:pointer;
+    padding:8px 6px;display:flex;flex-direction:column;gap:3px;align-items:center;transition:.15s;
   }
-  .font-select:focus{outline:none;border-color:var(--teal);}
+  .fontg-btn:hover{border-color:var(--teal);}
+  .fontg-btn.active{border-color:#1a1a1a;background:#f5f5f7;}
+  .fontg-btn .fname{font-size:10px;color:var(--text-dim);font-family:'Noto Sans JP';}
+  .fontg-btn .fx{color:var(--text-dim);cursor:pointer;}
+  .fontg-btn .fx:hover{color:var(--danger);}
+  .fontg-btn .fsample{font-size:15px;color:var(--text);line-height:1.3;}
 
   .radio-row{display:flex;flex-direction:column;gap:6px;font-size:12.5px;}
   .radio-row label{display:flex;align-items:center;gap:7px;cursor:pointer;color:var(--text);}
@@ -256,7 +273,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v2.9</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v3.5</span></small></div>
 </div>
 
 <div class="layout">
@@ -294,17 +311,39 @@
     </div>
 
     <div class="block">
-      <div class="block-title"><span class="num">3</span>OpenAI APIキー</div>
+      <div class="block-title"><span class="num">3</span>番組アイコン（任意）</div>
+      <div class="drop" id="iconDrop">
+        <input type="file" id="iconInput" accept="image/*">
+        <div class="ic">🏷</div>
+        <div class="t1">アイコン画像を追加</div>
+        <div class="t2">動画の四隅に小さく表示するロゴ・アイコン</div>
+      </div>
+      <div id="iconChip" style="display:none"></div>
+      <div class="radio-row" id="iconOpts" style="display:none">
+        <div class="corner-grid">
+          <label><input type="radio" name="iconCorner" value="tl">左上</label>
+          <label><input type="radio" name="iconCorner" value="tr" checked>右上</label>
+          <label><input type="radio" name="iconCorner" value="bl">左下</label>
+          <label><input type="radio" name="iconCorner" value="br">右下</label>
+        </div>
+        <div class="slider-row" style="width:100%">
+          <div class="lbl"><span>アイコンの大きさ（画面幅比）</span><b id="iconSizeVal">12%</b></div>
+          <input type="range" id="iconSize" min="5" max="25" value="12" step="1">
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title"><span class="num">4</span>OpenAI APIキー</div>
       <input type="password" id="apiKey" placeholder="sk-...">
       <div class="key-row">
         <label class="key-toggle"><input type="checkbox" id="saveKeyToggle">次回から自動入力する（この端末に保存）</label>
         <span class="key-status" id="keyStatus"></span>
       </div>
-      <div class="hint">Whisper（音声認識）の文字起こしに使用。OpenAI以外には送信されません。保存をONにするとこの端末に紐づいた場所に暗号化されずに残るので、共有端末では避けてください。</div>
     </div>
 
     <div class="block">
-      <div class="block-title"><span class="num">4</span>無音カットの設定</div>
+      <div class="block-title"><span class="num">5</span>無音カットの設定</div>
       <div class="slider-row">
         <div class="lbl"><span>無音と判定する感度</span><b id="thVal">-30 dB</b></div>
         <input type="range" id="threshold" min="-50" max="-15" value="-30" step="1">
@@ -333,25 +372,25 @@
     </div>
 
     <div class="block">
-      <div class="block-title"><span class="num">5</span>字幕デザイン</div>
-      <div class="font-preview-label">フォント（15種類から選択）</div>
-      <select id="fontSelect" class="font-select">
-        <option value="Noto Sans JP">標準ゴシック（Noto Sans JP）</option>
-        <option value="Zen Kaku Gothic New">太ゴシック（Zen Kaku Gothic New）</option>
-        <option value="Kosugi Maru">丸ゴシック（Kosugi Maru）</option>
-        <option value="M PLUS Rounded 1c">太丸ゴシック（M PLUS Rounded 1c）</option>
-        <option value="Zen Maru Gothic">やさしい丸文字（Zen Maru Gothic）</option>
-        <option value="Shippori Mincho">明朝体（Shippori Mincho）</option>
-        <option value="RocknRoll One">ロック（RocknRoll One）</option>
-        <option value="Reggae One">極太レゲエ（Reggae One）</option>
-        <option value="Yusei Magic">手書きマーカー（Yusei Magic）</option>
-        <option value="Hachi Maru Pop">ゆるかわ手書き（Hachi Maru Pop）</option>
-        <option value="Mochiy Pop One">もちもちポップ（Mochiy Pop One）</option>
-        <option value="DotGothic16">ドット文字（DotGothic16）</option>
-        <option value="Rampart One">立体袋文字（Rampart One）</option>
-        <option value="Train One">縁取りレトロ（Train One）</option>
-        <option value="Stick">スティック（Stick）</option>
-      </select>
+      <div class="block-title"><span class="num">6</span>字幕デザイン</div>
+      <div class="font-preview-label">フォント（15種類・見た目そのまま表示）</div>
+      <div class="font-grid" id="fontGrid">
+        <button type="button" class="fontg-btn active" data-font="Noto Sans JP"><span class="fname">標準ゴシック</span><span class="fsample" style="font-family:'Noto Sans JP'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Zen Kaku Gothic New"><span class="fname">太ゴシック</span><span class="fsample" style="font-family:'Zen Kaku Gothic New';font-weight:900">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Kosugi Maru"><span class="fname">丸ゴシック</span><span class="fsample" style="font-family:'Kosugi Maru'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="M PLUS Rounded 1c"><span class="fname">太丸ゴシック</span><span class="fsample" style="font-family:'M PLUS Rounded 1c';font-weight:800">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Zen Maru Gothic"><span class="fname">やさしい丸文字</span><span class="fsample" style="font-family:'Zen Maru Gothic';font-weight:700">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Shippori Mincho"><span class="fname">明朝体</span><span class="fsample" style="font-family:'Shippori Mincho'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="RocknRoll One"><span class="fname">ロック</span><span class="fsample" style="font-family:'RocknRoll One'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Reggae One"><span class="fname">極太レゲエ</span><span class="fsample" style="font-family:'Reggae One'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Yusei Magic"><span class="fname">手書きマーカー</span><span class="fsample" style="font-family:'Yusei Magic'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Hachi Maru Pop"><span class="fname">ゆるかわ手書き</span><span class="fsample" style="font-family:'Hachi Maru Pop'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Mochiy Pop One"><span class="fname">もちもちポップ</span><span class="fsample" style="font-family:'Mochiy Pop One'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="DotGothic16"><span class="fname">ドット文字</span><span class="fsample" style="font-family:'DotGothic16'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Rampart One"><span class="fname">立体袋文字</span><span class="fsample" style="font-family:'Rampart One'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Train One"><span class="fname">縁取りレトロ</span><span class="fsample" style="font-family:'Train One'">字幕テスト</span></button>
+        <button type="button" class="fontg-btn" data-font="Stick"><span class="fname">スティック</span><span class="fsample" style="font-family:'Stick'">字幕テスト</span></button>
+      </div>
       <div class="font-preview-label">デザインプリセット</div>
       <div class="font-presets" id="fontPresets">
         <button type="button" class="font-btn active" data-font="Noto Sans JP" data-color="#ffffff" data-bg="72" data-emph="#f3a53d" style="font-family:'Noto Sans JP'">標準</button>
@@ -372,9 +411,10 @@
         <button type="button" class="font-btn" data-font="M PLUS Rounded 1c" data-color="#111111" data-bg="0" data-emph="#c73e3e" data-outline='[{"w":0.13,"c":"#ffffff"}]'>白ふち黒文字</button>
       </div>
       <div class="font-custom-row">
-        <input type="text" id="customFont" placeholder="Googleフォント名（例: M PLUS 1p）">
-        <button type="button" class="font-apply" id="applyCustomFont">適用</button>
+        <input type="text" id="customFont" placeholder="Googleフォント名を追加（例: M PLUS 1p）">
+        <button type="button" class="font-apply" id="applyCustomFont">追加</button>
       </div>
+      <label class="key-toggle" style="margin-top:2px"><input type="checkbox" id="capBold">太字にする</label>
       <div class="hint">字幕内で <b>**大事な言葉**</b> のように囲むと、その部分だけ大きく表示されます</div>
       <div class="slider-row">
         <div class="lbl"><span>文字サイズ</span><b id="capSizeVal">100%</b></div>
@@ -392,6 +432,11 @@
         <div class="color-item"><span>文字色</span><input type="color" id="capColor" value="#ffffff"></div>
         <div class="color-item"><span>強調色</span><input type="color" id="emphColor" value="#f3a53d"></div>
       </div>
+      <label class="key-toggle"><input type="checkbox" id="gradOn">文字色をグラデーションにする</label>
+      <div class="color-grid" id="gradRow" style="display:none">
+        <div class="color-item"><span>開始色</span><input type="color" id="gradA" value="#ff7ac8"></div>
+        <div class="color-item"><span>終了色</span><input type="color" id="gradB" value="#7ad9ff"></div>
+      </div>
       <div class="font-preview-label">プレビュー（字幕をドラッグして位置を調整できます）</div>
       <div class="aspect-toggle">
         <button type="button" class="ar-btn active" data-ar="wide">16:9 横型</button>
@@ -399,6 +444,7 @@
       </div>
       <div class="pos-editor wide" id="posEditor">
         <div class="box" id="posBox"></div>
+        <img class="corner-icon ic-tr" id="posIcon">
       </div>
       <div class="font-preview-label">マイ設定（この端末に保存されます）</div>
       <div class="font-custom-row">
@@ -436,6 +482,7 @@
           <div class="frame" id="frame">
             <video id="player" controls></video>
             <div class="cap-overlay"><div class="box" id="capOverlay" style="display:none"></div></div>
+            <img class="corner-icon ic-tr" id="playIcon">
           </div>
         </div>
 
@@ -734,6 +781,61 @@ document.querySelectorAll('input[name=eyeMode]').forEach(r => r.addEventListener
   const manual = document.querySelector('input[name=eyeMode]:checked').value === 'manual';
   eyeTimeRow.style.display = manual ? 'flex' : 'none';
 }));
+
+// ---------- corner icon (番組アイコン / watermark) ----------
+let iconFile = null;
+const iconDrop = document.getElementById('iconDrop');
+const iconInput = document.getElementById('iconInput');
+const iconChip = document.getElementById('iconChip');
+const iconOpts = document.getElementById('iconOpts');
+
+iconDrop.addEventListener('click', () => iconInput.click());
+iconDrop.addEventListener('dragover', e => { e.preventDefault(); iconDrop.classList.add('drag'); });
+iconDrop.addEventListener('dragleave', () => iconDrop.classList.remove('drag'));
+iconDrop.addEventListener('drop', e => {
+  e.preventDefault(); iconDrop.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleIconFile(e.dataTransfer.files[0]);
+});
+iconInput.addEventListener('change', e => { if (e.target.files[0]) handleIconFile(e.target.files[0]); });
+
+function iconCorner(){ return document.querySelector('input[name=iconCorner]:checked').value; }
+function iconSizePct(){ return +document.getElementById('iconSize').value; }
+
+function updateIconPreviews(){
+  ['posIcon','playIcon'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (!iconFile){ el.style.display = 'none'; el.removeAttribute('src'); return; }
+    el.src = iconObjectUrl;
+    el.className = 'corner-icon ic-' + iconCorner();
+    el.style.width = iconSizePct() + '%';
+    el.style.display = 'block';
+  });
+}
+let iconObjectUrl = null;
+function handleIconFile(file){
+  iconFile = file;
+  if (iconObjectUrl) URL.revokeObjectURL(iconObjectUrl);
+  iconObjectUrl = URL.createObjectURL(file);
+  iconChip.style.display = 'flex';
+  iconChip.className = 'file-chip';
+  iconChip.innerHTML = `<span class="name">🏷 ${file.name}</span><span class="dur">${fmtSize(file.size)}</span><button class="mini-remove" id="iconRemove" title="アイコンを外す">✕</button>`;
+  iconOpts.style.display = 'flex';
+  document.getElementById('iconRemove').addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    iconFile = null;
+    iconChip.style.display = 'none';
+    iconOpts.style.display = 'none';
+    iconInput.value = '';
+    updateIconPreviews();
+  });
+  updateIconPreviews();
+}
+document.querySelectorAll('input[name=iconCorner]').forEach(r => r.addEventListener('change', updateIconPreviews));
+document.getElementById('iconSize').addEventListener('input', () => {
+  document.getElementById('iconSizeVal').textContent = iconSizePct() + '%';
+  updateIconPreviews();
+});
 function checkReady(){
   runBtn.disabled = !(videoFile && apiKeyInput.value.trim().length > 10);
 }
@@ -826,20 +928,52 @@ padEl.oninput = () => padVal.textContent = parseFloat(padEl.value).toFixed(2) + 
 // ---------- caption font ----------
 let captionFont = 'Noto Sans JP';
 const fontBtns = document.querySelectorAll('.font-btn');
-const fontSelect = document.getElementById('fontSelect');
+const fontGrid = document.getElementById('fontGrid');
+const CUSTOM_FONTS_KEY = 'cutcap_custom_fonts';
 function syncFontSelect(){
-  const has = [...fontSelect.options].some(o => o.value === captionFont);
-  if (has) fontSelect.value = captionFont;
+  fontGrid.querySelectorAll('.fontg-btn').forEach(b => b.classList.toggle('active', b.dataset.font === captionFont));
 }
-fontSelect.addEventListener('change', () => {
-  captionFont = fontSelect.value;
+function addFontCard(name, custom){
+  if (fontGrid.querySelector(`.fontg-btn[data-font="${CSS.escape(name)}"]`)) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'fontg-btn';
+  btn.dataset.font = name;
+  if (custom) btn.dataset.custom = '1';
+  btn.innerHTML = `<span class="fname">${escapeHtml(name)}${custom ? ' <span class="fx" title="削除">✕</span>' : ''}</span><span class="fsample" style="font-family:'${name.replace(/'/g,'')}'">字幕テスト</span>`;
+  fontGrid.appendChild(btn);
+}
+async function loadCustomFonts(){
+  try{
+    const raw = await deviceStore.get(CUSTOM_FONTS_KEY);
+    const list = raw ? JSON.parse(raw) : [];
+    list.forEach(n => { ensureFontLink(n); addFontCard(n, true); });
+  }catch(e){}
+}
+async function saveCustomFontList(){
+  const names = [...fontGrid.querySelectorAll('.fontg-btn[data-custom]')].map(b => b.dataset.font);
+  await deviceStore.set(CUSTOM_FONTS_KEY, JSON.stringify(names));
+}
+fontGrid.addEventListener('click', async (e) => {
+  const b = e.target.closest('.fontg-btn');
+  if (!b) return;
+  if (e.target.classList.contains('fx')){
+    if (!confirm(`「${b.dataset.font}」をフォント一覧から削除しますか？`)) return;
+    b.remove();
+    if (captionFont === b.dataset.font){ captionFont = 'Noto Sans JP'; syncFontSelect(); applyCaptionFont(); }
+    await saveCustomFontList();
+    return;
+  }
+  captionFont = b.dataset.font;
+  syncFontSelect();
   applyCaptionFont();
 });
+loadCustomFonts();
 const PREVIEW_SAMPLE = '動画編集が**もっと簡単**になります';
 function renderFontPreview(){
   const p = document.getElementById('posBox');
   if (!p) return;
-  p.innerHTML = renderEmphHTML(PREVIEW_SAMPLE);
+  p.innerHTML = '<span class="cap-inner">' + renderEmphHTML(PREVIEW_SAMPLE) + '</span>';
 }
 function applyCaptionFont(){
   document.documentElement.style.setProperty('--cap-font', `'${captionFont}', sans-serif`);
@@ -858,6 +992,9 @@ fontBtns.forEach(b => b.addEventListener('click', () => {
     capStyle.bg = (+b.dataset.bg) / 100;
     capStyle.outline = b.dataset.outline ? JSON.parse(b.dataset.outline) : [];
     capStyle.dropshadow = b.dataset.shadow === '1';
+    capStyle.grad = null;
+    document.getElementById('gradOn').checked = false;
+    document.getElementById('gradRow').style.display = 'none';
     document.getElementById('capColor').value = capStyle.color;
     document.getElementById('emphColor').value = capStyle.emph;
     const bgEl = document.getElementById('capBg');
@@ -866,24 +1003,22 @@ fontBtns.forEach(b => b.addEventListener('click', () => {
     applyCapStyle();
   }
 }));
-document.getElementById('applyCustomFont').addEventListener('click', () => {
+document.getElementById('applyCustomFont').addEventListener('click', async () => {
   const name = document.getElementById('customFont').value.trim();
   if (!name) return;
-  const linkId = 'dyn-font-' + name.replace(/\s+/g,'-');
-  if (!document.getElementById(linkId)){
-    const link = document.createElement('link');
-    link.id = linkId; link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(name).replace(/%20/g,'+') + ':wght@400;700&display=swap';
-    document.head.appendChild(link);
-  }
-  fontBtns.forEach(x => x.classList.remove('active'));
+  ensureFontLink(name);
+  addFontCard(name, true);
+  await saveCustomFontList();
   captionFont = name;
+  syncFontSelect();
+  fontBtns.forEach(x => x.classList.remove('active'));
   applyCaptionFont();
+  document.getElementById('customFont').value = '';
 });
 applyCaptionFont();
 
 // ---------- caption style (size / position / colors / background / outline) ----------
-const capStyle = { scale: 1, bottom: 6, bg: 0.72, color: '#ffffff', emph: '#f3a53d', outline: [], dropshadow: false };
+const capStyle = { scale: 1, bottom: 6, bg: 0.72, color: '#ffffff', emph: '#f3a53d', outline: [], dropshadow: false, bold: false, grad: null };
 function ringShadow(r, c){
   const pts = [];
   for (let a = 0; a < 16; a++){
@@ -899,6 +1034,11 @@ function applyCapStyle(){
   r.setProperty('--cap-bg', capStyle.bg);
   r.setProperty('--cap-color', capStyle.color);
   r.setProperty('--emph-color', capStyle.emph);
+  r.setProperty('--cap-weight', capStyle.bold ? 700 : 500);
+  r.setProperty('--cap-grad', capStyle.grad ? `linear-gradient(90deg, ${capStyle.grad[0]}, ${capStyle.grad[1]})` : 'none');
+  [document.getElementById('posBox'), document.getElementById('capOverlay')].forEach(el => {
+    if (el) el.classList.toggle('cap-gradient', !!capStyle.grad);
+  });
   const o = capStyle.outline || [];
   const sh = [];
   if (o[0]) sh.push(ringShadow(o[0].w, o[0].c));
@@ -941,6 +1081,16 @@ capBgEl.oninput = () => {
 };
 document.getElementById('capColor').addEventListener('input', e => { capStyle.color = e.target.value; applyCapStyle(); });
 document.getElementById('emphColor').addEventListener('input', e => { capStyle.emph = e.target.value; applyCapStyle(); });
+document.getElementById('capBold').addEventListener('change', e => { capStyle.bold = e.target.checked; applyCapStyle(); });
+function refreshGrad(){
+  const on = document.getElementById('gradOn').checked;
+  document.getElementById('gradRow').style.display = on ? 'grid' : 'none';
+  capStyle.grad = on ? [document.getElementById('gradA').value, document.getElementById('gradB').value] : null;
+  applyCapStyle();
+}
+document.getElementById('gradOn').addEventListener('change', refreshGrad);
+document.getElementById('gradA').addEventListener('input', refreshGrad);
+document.getElementById('gradB').addEventListener('input', refreshGrad);
 applyCapStyle();
 
 // ---------- position editor (16:9 / 9:16, drag to move caption) ----------
@@ -1002,6 +1152,13 @@ function syncStyleControls(){
   document.getElementById('capSizeVal').textContent = Math.round(capStyle.scale * 100) + '%';
   capPosEl.value = Math.min(capStyle.bottom, +capPosEl.max);
   document.getElementById('capPosVal').textContent = capStyle.bottom + '%';
+  document.getElementById('capBold').checked = !!capStyle.bold;
+  document.getElementById('gradOn').checked = !!capStyle.grad;
+  document.getElementById('gradRow').style.display = capStyle.grad ? 'grid' : 'none';
+  if (capStyle.grad){
+    document.getElementById('gradA').value = capStyle.grad[0];
+    document.getElementById('gradB').value = capStyle.grad[1];
+  }
 }
 async function renderMyPresets(){
   const wrap = document.getElementById('myPresets');
@@ -1022,7 +1179,7 @@ async function renderMyPresets(){
       ensureFontLink(captionFont);
       capStyle.color = p.color; capStyle.emph = p.emph; capStyle.bg = p.bg;
       capStyle.scale = p.scale; capStyle.bottom = p.bottom;
-      capStyle.outline = p.outline || []; capStyle.dropshadow = !!p.dropshadow;
+      capStyle.outline = p.outline || []; capStyle.dropshadow = !!p.dropshadow; capStyle.bold = !!p.bold; capStyle.grad = p.grad || null;
       fontBtns.forEach(x => x.classList.remove('active'));
       syncStyleControls();
       syncFontSelect();
@@ -1048,7 +1205,7 @@ document.getElementById('savePresetBtn').addEventListener('click', async () => {
     font: captionFont,
     color: capStyle.color, emph: capStyle.emph, bg: capStyle.bg,
     scale: capStyle.scale, bottom: capStyle.bottom,
-    outline: capStyle.outline || [], dropshadow: !!capStyle.dropshadow
+    outline: capStyle.outline || [], dropshadow: !!capStyle.dropshadow, bold: !!capStyle.bold, grad: capStyle.grad || null
   };
   await saveMyPresets(presets);
   document.getElementById('presetName').value = '';
@@ -1190,7 +1347,7 @@ async function runPipeline(){
     outW -= outW % 2; outH -= outH % 2;
     const doScale = (outW !== videoW || outH !== videoH);
     const doFps = targetFps > 0;
-    window.__outH = outH; // 焼き込み時の文字サイズ基準
+    window.__outH = outH; window.__outW = outW; // 焼き込み時の描画基準
 
     if (useEye){
       // アイキャッチをメイン動画と同じ解像度・形式に正規化（音声が無ければ無音を付与）
@@ -1256,12 +1413,34 @@ async function runPipeline(){
       }
       concatInputs += `[v${i}][a${i}]`;
     });
-    const filterComplex = filterParts.join(';') + `;${concatInputs}concat=n=${segments.length}:v=1:a=1[outv][outa]`;
-    const cutArgs = useEye
-      ? ['-i','input.mp4','-i','eyecatch.mp4','-filter_complex', filterComplex, '-map','[outv]','-map','[outa]',
-         '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4']
-      : ['-i','input.mp4','-filter_complex', filterComplex, '-map','[outv]','-map','[outa]',
-         '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4'];
+    const filterComplexBase = filterParts.join(';') + `;${concatInputs}concat=n=${segments.length}:v=1:a=1[outv][outa]`;
+
+    // 番組アイコン（四隅ロゴ）を合成
+    const useIcon = !!iconFile;
+    let filterComplex = filterComplexBase;
+    let vMap = '[outv]';
+    const inputArgs = ['-i','input.mp4'];
+    if (useEye) inputArgs.push('-i','eyecatch.mp4');
+    if (useIcon){
+      const ext = (iconFile.type||'').includes('png') ? 'png' : (iconFile.type||'').includes('webp') ? 'webp' : 'jpg';
+      await ffmpeg.writeFile('icon.'+ext, new Uint8Array(await iconFile.arrayBuffer()));
+      inputArgs.push('-i','icon.'+ext);
+      const iconIdx = useEye ? 2 : 1;
+      let iw = Math.round(outW * iconSizePct() / 100); iw -= iw % 2; iw = Math.max(16, iw);
+      const m = Math.max(6, Math.round(outW * 0.02));
+      const posMap = {
+        tl: `${m}:${m}`,
+        tr: `main_w-overlay_w-${m}:${m}`,
+        bl: `${m}:main_h-overlay_h-${m}`,
+        br: `main_w-overlay_w-${m}:main_h-overlay_h-${m}`
+      };
+      filterComplex += `;[${iconIdx}:v]scale=${iw}:-1[wm];[outv][wm]overlay=${posMap[iconCorner()]}[outvf]`;
+      vMap = '[outvf]';
+      window.__iconExt = ext;
+    }
+
+    const cutArgs = [...inputArgs, '-filter_complex', filterComplex, '-map', vMap, '-map','[outa]',
+      '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4'];
     const keptDur = keep.reduce((a,k)=>a+(k.end-k.start), 0);
     lastCutDur = keptDur + (useEye ? (eyecatchDuration||0) : 0);
     startEta({ target: lastCutDur, est: 40 });
@@ -1269,6 +1448,10 @@ async function runPipeline(){
     cutVideoBytes = await ffmpeg.readFile('cut.mp4');
     try{ await ffmpeg.deleteFile('input.mp4'); }catch(e){} // メモリ節約（iPhone対策）
     if (useEye){ try{ await ffmpeg.deleteFile('eyecatch.mp4'); }catch(e){} }
+    if (useIcon){ try{ await ffmpeg.deleteFile('icon.'+window.__iconExt); }catch(e){} }
+    // アイコンは動画に合成済みのため、再生プレビューの重ね表示は消す
+    const pi = document.getElementById('playIcon');
+    if (pi) pi.style.display = 'none';
     cutVideoBlobUrl = URL.createObjectURL(new Blob([cutVideoBytes.buffer], {type:'video/mp4'}));
     const player = document.getElementById('player');
     player.src = cutVideoBlobUrl;
@@ -1404,7 +1587,7 @@ player.addEventListener('timeupdate', () => {
   rows.forEach(r => r.classList.remove('playing'));
   if (cur){
     capOverlay.style.display = 'block';
-    capOverlay.innerHTML = renderEmphHTML(cur.text);
+    capOverlay.innerHTML = '<span class="cap-inner">' + renderEmphHTML(cur.text) + '</span>';
     const idx = captions.indexOf(cur);
     const row = document.querySelector(`.cap-row[data-idx="${idx}"]`);
     if (row) row.classList.add('playing');
@@ -1428,86 +1611,132 @@ document.getElementById('dlSrt').addEventListener('click', () => {
 document.getElementById('dlBurn').addEventListener('click', async () => {
   const btn = document.getElementById('dlBurn');
   const original = btn.textContent;
-  btn.disabled = true; btn.textContent = '⏳ フォント準備中…';
+  btn.disabled = true; btn.textContent = '⏳ 字幕を描画中…';
   initAudioCtx();
   try{
-    const GF = 'https://cdn.jsdelivr.net/gh/google/fonts/ofl/';
-    const FONT_FILES = {
-      'Noto Sans JP':        [GF+'notosansjp/NotoSansJP%5Bwght%5D.ttf'],
-      'Zen Kaku Gothic New': [GF+'zenkakugothicnew/ZenKakuGothicNew-Bold.ttf', GF+'zenkakugothicnew/ZenKakuGothicNew-Black.ttf'],
-      'Kosugi Maru':         [GF+'kosugimaru/KosugiMaru-Regular.ttf'],
-      'RocknRoll One':       [GF+'rocknrollone/RocknRollOne-Regular.ttf'],
-      'Shippori Mincho':     [GF+'shipporimincho/ShipporiMincho-SemiBold.ttf', GF+'shipporimincho/ShipporiMincho-Bold.ttf'],
-      'M PLUS Rounded 1c':   [GF+'mplusrounded1c/MPLUSRounded1c-Bold.ttf', GF+'mplusrounded1c/MPLUSRounded1c-Black.ttf'],
-      'Yusei Magic':         [GF+'yuseimagic/YuseiMagic-Regular.ttf'],
-      'DotGothic16':         [GF+'dotgothic16/DotGothic16-Regular.ttf'],
-      'Reggae One':          [GF+'reggaeone/ReggaeOne-Regular.ttf'],
-      'Zen Maru Gothic':     [GF+'zenmarugothic/ZenMaruGothic-Bold.ttf', GF+'zenmarugothic/ZenMaruGothic-Medium.ttf'],
-      'Hachi Maru Pop':      [GF+'hachimarupop/HachiMaruPop-Regular.ttf'],
-      'Mochiy Pop One':      [GF+'mochiypopone/MochiyPopOne-Regular.ttf'],
-      'Rampart One':         [GF+'rampartone/RampartOne-Regular.ttf'],
-      'Train One':           [GF+'trainone/TrainOne-Regular.ttf'],
-      'Stick':               [GF+'stick/Stick-Regular.ttf'],
-    };
-    const FALLBACK_FONT_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/kosugi-maru/fonts/ttf/KosugiMaru-Regular.ttf';
-    if (window.__cutcapLoadedFont !== captionFont){
-      try{ await ffmpeg.deleteFile('font.ttf'); }catch(e){}
-      const candidates = (FONT_FILES[captionFont] || []).concat([FALLBACK_FONT_URL]);
-      let fontBuf = null;
-      for (const u of candidates){
-        try{
-          const r = await fetch(u);
-          if (r.ok){ fontBuf = new Uint8Array(await r.arrayBuffer()); break; }
-        }catch(e){}
+    if (!captions.length) throw new Error('字幕がありません');
+
+    // ===== 字幕をブラウザ上で画像として描画（プレビューと同じ見た目を完全再現） =====
+    const H = window.__outH || videoH || 720;
+    const fontPx = Math.max(12, Math.round(H * 0.045 * capStyle.scale));
+    const emphPx = Math.round(fontPx * 1.55);
+    const weight = capStyle.bold ? '700' : '500';
+    // フォントを描画用に読み込み
+    try{
+      await Promise.all([
+        document.fonts.load(`${weight} ${fontPx}px "${captionFont}"`, '字幕テスト'),
+        document.fonts.load(`900 ${emphPx}px "${captionFont}"`, '字幕テスト')
+      ]);
+    }catch(e){}
+
+    function parseSegs(line){
+      const out = []; const re = /\*\*(.+?)\*\*/g; let last = 0, m;
+      while((m = re.exec(line))){
+        if (m.index > last) out.push({t: line.slice(last, m.index), e: false});
+        out.push({t: m[1], e: true});
+        last = re.lastIndex;
       }
-      if (!fontBuf) throw new Error('フォントの取得に失敗しました');
-      await ffmpeg.writeFile('font.ttf', fontBuf);
-      window.__cutcapLoadedFont = captionFont;
+      if (last < line.length) out.push({t: line.slice(last), e: false});
+      return out.filter(sg => sg.t.length);
     }
+    const outlineLayers = capStyle.outline || [];
+    const maxOutline = outlineLayers.reduce((a,o)=>a+o.w, 0) * fontPx;
+
+    async function renderCaptionPNG(c){
+      const lines = c.text.split('\n').map(l=>l.trim()).filter(l=>l);
+      const cv = document.createElement('canvas');
+      const ctx = cv.getContext('2d');
+      const segFont = sg => (sg.e ? '900 ' : weight + ' ') + (sg.e ? emphPx : fontPx) + 'px "' + captionFont + '"';
+      const metrics = lines.map(line => {
+        const segs = parseSegs(line);
+        let w = 0, hMax = fontPx;
+        segs.forEach(sg => { ctx.font = segFont(sg); w += ctx.measureText(sg.t).width; if (sg.e) hMax = Math.max(hMax, emphPx); });
+        return {segs, w, h: hMax};
+      });
+      const maxW = Math.max(...metrics.map(l=>l.w));
+      const shadowPad = capStyle.dropshadow ? fontPx*0.14 : 0;
+      const padX = Math.round(fontPx*0.6 + maxOutline + shadowPad);
+      const padY = Math.round(fontPx*0.35 + maxOutline + shadowPad/2);
+      const lineGap = Math.round(fontPx*0.35);
+      const totalH = metrics.reduce((a,l)=>a+l.h, 0) + lineGap*(lines.length-1);
+      cv.width = Math.max(2, Math.ceil(maxW + padX*2));
+      cv.height = Math.max(2, Math.ceil(totalH + padY*2));
+      // 背景ボックス
+      if (capStyle.bg > 0.02){
+        ctx.fillStyle = 'rgba(6,12,18,' + capStyle.bg + ')';
+        const r = Math.round(fontPx*0.25);
+        if (ctx.roundRect){ ctx.beginPath(); ctx.roundRect(0,0,cv.width,cv.height,r); ctx.fill(); }
+        else ctx.fillRect(0,0,cv.width,cv.height);
+      }
+      // 塗り（グラデーション対応）
+      let fillStyle = capStyle.color;
+      if (capStyle.grad){
+        const g = ctx.createLinearGradient(0,0,cv.width,0);
+        g.addColorStop(0, capStyle.grad[0]); g.addColorStop(1, capStyle.grad[1]);
+        fillStyle = g;
+      }
+      ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+      let y = padY;
+      metrics.forEach(lm => {
+        const baseY = y + lm.h*0.82;
+        const startX = (cv.width - lm.w)/2;
+        // 縁取り（外→内）
+        const passes = [];
+        if (outlineLayers[1]) passes.push({lw: 2*(outlineLayers[0].w+outlineLayers[1].w)*fontPx, c: outlineLayers[1].c});
+        if (outlineLayers[0]) passes.push({lw: 2*outlineLayers[0].w*fontPx, c: outlineLayers[0].c});
+        passes.forEach((p, pi) => {
+          let sx = startX;
+          lm.segs.forEach(sg => {
+            ctx.font = segFont(sg); ctx.lineWidth = p.lw; ctx.strokeStyle = p.c;
+            if (capStyle.dropshadow && pi === 0){
+              ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.45)';
+              ctx.shadowOffsetX = fontPx*0.09; ctx.shadowOffsetY = fontPx*0.09;
+              ctx.strokeText(sg.t, sx, baseY); ctx.restore();
+            } else {
+              ctx.strokeText(sg.t, sx, baseY);
+            }
+            sx += ctx.measureText(sg.t).width;
+          });
+        });
+        // 塗りつぶし
+        let fx = startX;
+        lm.segs.forEach(sg => {
+          ctx.font = segFont(sg);
+          const useShadow = capStyle.dropshadow && passes.length === 0;
+          if (useShadow){ ctx.save(); ctx.shadowColor='rgba(0,0,0,.45)'; ctx.shadowOffsetX=fontPx*0.09; ctx.shadowOffsetY=fontPx*0.09; }
+          ctx.fillStyle = sg.e ? capStyle.emph : fillStyle;
+          if (capStyle.bold){ ctx.lineWidth = fontPx*0.05; ctx.strokeStyle = ctx.fillStyle; ctx.strokeText(sg.t, fx, baseY); }
+          ctx.fillText(sg.t, fx, baseY);
+          if (useShadow) ctx.restore();
+          fx += ctx.measureText(sg.t).width;
+        });
+        y += lm.h + lineGap;
+      });
+      const blob = await new Promise(res => cv.toBlob(res, 'image/png'));
+      if (!blob) throw new Error('字幕画像の生成に失敗しました');
+      return new Uint8Array(await blob.arrayBuffer());
+    }
+
+    // ===== 画像を動画にオーバーレイ =====
     btn.textContent = '🔥 焼き込み中…';
     startEta({ target: lastCutDur || 30, est: 45 });
-    function esc(s){
-      return s.replace(/\\/g,'\\\\').replace(/:/g,'\\:').replace(/'/g,"\u2019")
-        .replace(/,/g,'\\,').replace(/\[/g,'\\[').replace(/\]/g,'\\]').replace(/%/g,'\\%');
-    }
-    const hex = h => '0x' + h.replace('#','');
-    const fspx = Math.max(12, Math.round((window.__outH || videoH || 720) * 0.045 * capStyle.scale));
+    const inputArgs = ['-i','cut.mp4'];
     const bottomRatio = (capStyle.bottom / 100).toFixed(3);
-    const outline = capStyle.outline || [];
-    const lineH = Math.round(fspx * 1.45);
-    const chainParts = [];
-    captions.forEach(c => {
-      const lines = c.text.replace(/\*\*/g,'').split('\n').map(s=>s.trim()).filter(s=>s.length);
-      lines.forEach((lineText, li) => {
-        const fromBottom = lines.length - 1 - li; // 最終行が最下段
-        const yExpr = `h-th-h*${bottomRatio}-${fromBottom * lineH}`;
-        const base = `drawtext=fontfile=/font.ttf:text='${esc(lineText)}':enable='between(t,${c.start},${c.end})':`+
-                     `x=(w-text_w)/2:y=${yExpr}:fontsize=${fspx}:fontcolor=${hex(capStyle.color)}`;
-        const layers = [];
-        if (outline.length > 1){
-          const bw2 = Math.max(1, Math.round(fspx * (outline[0].w + outline[1].w)));
-          layers.push(base + `:borderw=${bw2}:bordercolor=${hex(outline[1].c)}`);
-        }
-        if (outline.length > 0){
-          const bw1 = Math.max(1, Math.round(fspx * outline[0].w));
-          layers.push(base + `:borderw=${bw1}:bordercolor=${hex(outline[0].c)}`);
-        } else {
-          layers.push(base);
-        }
-        // 背景ボックス・ドロップシャドウは最下層に付与
-        if (capStyle.bg > 0.02){
-          layers[0] += `:box=1:boxcolor=black@${capStyle.bg.toFixed(2)}:boxborderw=10`;
-        }
-        if (capStyle.dropshadow){
-          const so = Math.max(1, Math.round(fspx * 0.09));
-          layers[0] += `:shadowcolor=black@0.45:shadowx=${so}:shadowy=${so}`;
-        }
-        chainParts.push(...layers);
-      });
-    });
-    const chain = chainParts.join(',');
-    await ffmpeg.exec(['-i','cut.mp4','-vf', chain, '-c:a','copy','burned.mp4']);
+    let fc = '';
+    let prev = '[0:v]';
+    for (let i = 0; i < captions.length; i++){
+      const png = await renderCaptionPNG(captions[i]);
+      await ffmpeg.writeFile('cap'+i+'.png', png);
+      inputArgs.push('-i','cap'+i+'.png');
+      const label = (i === captions.length-1) ? '[vout]' : '[v'+i+']';
+      fc += `${prev}[${i+1}:v]overlay=(main_w-overlay_w)/2:main_h-overlay_h-main_h*${bottomRatio}:enable='between(t,${captions[i].start},${captions[i].end})'${label};`;
+      prev = '[v'+i+']';
+    }
+    fc = fc.slice(0, -1);
+    await ffmpeg.exec([...inputArgs, '-filter_complex', fc, '-map','[vout]','-map','0:a?',
+      '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','copy','burned.mp4']);
     const out = await ffmpeg.readFile('burned.mp4');
+    for (let i = 0; i < captions.length; i++){ try{ await ffmpeg.deleteFile('cap'+i+'.png'); }catch(e){} }
     try{ await ffmpeg.deleteFile('burned.mp4'); }catch(e){}
     const blob = new Blob([out.buffer], {type:'video/mp4'});
     const a = document.createElement('a');
