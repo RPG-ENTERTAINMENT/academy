@@ -396,17 +396,43 @@ function checkReady(){
   runBtn.disabled = !(videoFile && apiKeyInput.value.trim().length > 10);
 }
 
-// ---------- saved API key (persists on this device via artifact storage) ----------
+// ---------- saved API key (persists on this device) ----------
+// Claudeアーティファクト内では window.storage、GitHub Pages等の通常ホスティングでは localStorage を使用
 const saveKeyToggle = document.getElementById('saveKeyToggle');
 const keyStatus = document.getElementById('keyStatus');
 const KEY_STORAGE_NAME = 'cutcap_openai_key';
 let saveTimer = null;
 
+const hasArtifactStorage = (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function');
+const keyStore = {
+  async get(){
+    if (hasArtifactStorage){
+      const res = await window.storage.get(KEY_STORAGE_NAME, false);
+      return res ? res.value : null;
+    }
+    return localStorage.getItem(KEY_STORAGE_NAME);
+  },
+  async set(v){
+    if (hasArtifactStorage){
+      await window.storage.set(KEY_STORAGE_NAME, v, false);
+    } else {
+      localStorage.setItem(KEY_STORAGE_NAME, v);
+    }
+  },
+  async remove(){
+    if (hasArtifactStorage){
+      await window.storage.delete(KEY_STORAGE_NAME, false);
+    } else {
+      localStorage.removeItem(KEY_STORAGE_NAME);
+    }
+  }
+};
+
 async function loadSavedKey(){
   try{
-    const res = await window.storage.get(KEY_STORAGE_NAME, false);
-    if (res && res.value){
-      apiKeyInput.value = res.value;
+    const v = await keyStore.get();
+    if (v){
+      apiKeyInput.value = v;
       saveKeyToggle.checked = true;
       keyStatus.textContent = '保存済み';
       checkReady();
@@ -419,14 +445,14 @@ async function persistKey(){
   const v = apiKeyInput.value.trim();
   if (v.length < 10) return;
   try{
-    await window.storage.set(KEY_STORAGE_NAME, v, false);
+    await keyStore.set(v);
     keyStatus.textContent = '保存済み';
   }catch(e){
     keyStatus.textContent = '保存に失敗しました';
   }
 }
 async function clearSavedKey(){
-  try{ await window.storage.delete(KEY_STORAGE_NAME, false); }catch(e){}
+  try{ await keyStore.remove(); }catch(e){}
   keyStatus.textContent = '';
 }
 apiKeyInput.addEventListener('input', () => {
