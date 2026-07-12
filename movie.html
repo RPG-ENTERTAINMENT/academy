@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>自動動画カット&字幕生成ソフト</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Kosugi+Maru&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ffmpeg/0.11.0/ffmpeg.min.js"></script>
+<style>
+  :root{
+    --ink:#0c141c;
+    --panel:#121d28;
+    --panel-2:#182634;
+    --line: #24374a;
+    --teal:#2dd8c6;
+    --teal-dim: #1a8f83;
+    --amber:#f3a53d;
+    --text:#e7eef3;
+    --text-dim:#8ca2b4;
+    --danger:#e06666;
+    --cap-font: 'Noto Sans JP', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--ink);color:var(--text);font-family:'Noto Sans JP',sans-serif;height:100%;}
+  ::selection{background:var(--teal);color:#00201c;}
+
+  .topbar{
+    display:flex;align-items:center;gap:14px;
+    padding:16px 28px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#0e1822,#0c141c);
+  }
+  .mark{
+    width:34px;height:34px;border-radius:9px;
+    background:conic-gradient(from 210deg, var(--teal), var(--amber), var(--teal));
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Zen Kaku Gothic New',sans-serif;font-weight:900;color:#04120f;font-size:18px;
+    flex:none;
+  }
+  .brand{font-family:'Zen Kaku Gothic New',sans-serif;font-weight:900;font-size:19px;letter-spacing:.02em;}
+  .brand small{display:block;font-family:'Noto Sans JP';font-weight:400;font-size:11.5px;color:var(--text-dim);letter-spacing:.04em;margin-top:1px;}
+
+  .layout{display:grid;grid-template-columns:340px 1fr;min-height:calc(100vh - 68px);}
+  @media (max-width:920px){ .layout{grid-template-columns:1fr;} }
+
+  .side{
+    border-right:1px solid var(--line);padding:22px;
+    background:var(--panel);
+    display:flex;flex-direction:column;gap:22px;
+    overflow-y:auto;
+  }
+  .block{display:flex;flex-direction:column;gap:10px;}
+  .block-title{
+    font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:13px;
+    color:var(--teal);letter-spacing:.06em;display:flex;align-items:center;gap:8px;
+  }
+  .block-title .num{
+    width:18px;height:18px;border-radius:5px;background:var(--panel-2);border:1px solid var(--line);
+    font-size:10.5px;display:flex;align-items:center;justify-content:center;color:var(--text-dim);
+    font-family:'JetBrains Mono';
+  }
+
+  .drop{
+    border:1.5px dashed var(--line);border-radius:12px;padding:22px 14px;text-align:center;
+    cursor:pointer;transition:.15s;background:var(--panel-2);
+  }
+  .drop:hover, .drop.drag{border-color:var(--teal);background:#132530;}
+  .drop input{display:none;}
+  .drop .ic{font-size:22px;margin-bottom:6px;}
+  .drop .t1{font-size:13px;color:var(--text);}
+  .drop .t2{font-size:11.5px;color:var(--text-dim);margin-top:3px;}
+  .file-chip{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px;
+  }
+  .file-chip span.name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;}
+  .file-chip .dur{color:var(--text-dim);font-family:'JetBrains Mono';font-size:11px;flex:none;}
+
+  label.f{font-size:12px;color:var(--text-dim);}
+  input[type=password], input[type=text]{
+    width:100%;background:var(--panel-2);border:1px solid var(--line);border-radius:8px;
+    padding:9px 11px;color:var(--text);font-family:'JetBrains Mono';font-size:12.5px;
+  }
+  input[type=password]:focus, input[type=text]:focus{outline:none;border-color:var(--teal);}
+  .hint{font-size:11px;color:var(--text-dim);line-height:1.5;}
+  .key-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .key-toggle{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-dim);cursor:pointer;}
+  .key-toggle input{accent-color:var(--teal);width:13px;height:13px;}
+  .key-status{font-size:11px;color:var(--teal);white-space:nowrap;}
+
+  .slider-row{display:flex;flex-direction:column;gap:5px;}
+  .slider-row .lbl{display:flex;justify-content:space-between;font-size:12px;color:var(--text-dim);}
+  .slider-row .lbl b{color:var(--text);font-family:'JetBrains Mono';font-weight:500;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:var(--line);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--teal);cursor:pointer;border:2px solid #04120f;}
+
+  .run-btn{
+    margin-top:4px;
+    background:linear-gradient(135deg,var(--teal),#1fb3a3);color:#04211c;border:none;border-radius:10px;
+    padding:13px;font-family:'Zen Kaku Gothic New',sans-serif;font-weight:700;font-size:14px;cursor:pointer;
+    transition:.15s;letter-spacing:.02em;
+  }
+  .run-btn:hover:not(:disabled){filter:brightness(1.08);}
+  .run-btn:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+
+  .steps{display:flex;flex-direction:column;gap:7px;font-size:12px;}
+  .step{display:flex;align-items:center;gap:8px;color:var(--text-dim);}
+  .step .dot{width:8px;height:8px;border-radius:50%;background:var(--line);flex:none;}
+  .step.active{color:var(--text);}
+  .step.active .dot{background:var(--amber);animation:pulse 1s infinite;}
+  .step.done{color:var(--teal);}
+  .step.done .dot{background:var(--teal);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .main{padding:26px 30px;display:flex;flex-direction:column;gap:20px;overflow-y:auto;}
+  .empty{
+    flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
+    color:var(--text-dim);text-align:center;
+  }
+  .empty .big{font-family:'Zen Kaku Gothic New';font-size:22px;color:var(--text);font-weight:700;}
+  .empty .big span{color:var(--teal);}
+
+  .stage{display:none;grid-template-columns:1fr 380px;gap:24px;}
+  .stage.show{display:grid;}
+  @media (max-width:1180px){ .stage.show{grid-template-columns:1fr;} }
+
+  .player-wrap{display:flex;flex-direction:column;gap:12px;}
+  .player{position:relative;background:#000;border-radius:14px;overflow:hidden;border:1px solid var(--line);display:flex;justify-content:center;align-items:center;min-height:200px;}
+  .frame{position:relative;display:inline-block;max-width:100%;line-height:0;}
+  .frame video{display:block;max-width:100%;max-height:74vh;width:auto;height:auto;background:#000;}
+  .cap-overlay{
+    position:absolute;left:0;right:0;bottom:6%;display:flex;justify-content:center;pointer-events:none;padding:0 6%;
+  }
+  .cap-overlay .box{
+    background:rgba(6,12,18,.72);color:#fff;padding:8px 18px;border-radius:8px;font-size:16px;font-weight:500;
+    text-align:center;max-width:100%;line-height:1.5;border:1px solid rgba(45,216,198,.25);
+    font-family:var(--cap-font);
+  }
+  .emph{font-size:1.55em;font-weight:900;color:var(--amber);display:inline-block;line-height:1.2;}
+
+  .silence-map{
+    height:38px;border-radius:8px;background:var(--panel-2);border:1px solid var(--line);position:relative;overflow:hidden;
+  }
+  .silence-map .seg{position:absolute;top:0;bottom:0;background:linear-gradient(180deg,var(--teal-dim),#0f5f57);}
+  .silence-map .seg:hover{background:linear-gradient(180deg,var(--teal),var(--teal-dim));}
+  .silence-map .cut{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,#1a2531,#1a2531 4px,#161f29 4px,#161f29 8px);}
+  .map-caption{font-size:11px;color:var(--text-dim);display:flex;justify-content:space-between;}
+  .map-caption b{color:var(--teal);font-weight:500;}
+
+  .export-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .xbtn{
+    flex:1;min-width:150px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    padding:11px 12px;border-radius:9px;font-size:12.5px;cursor:pointer;font-family:'Noto Sans JP';
+    display:flex;align-items:center;justify-content:center;gap:7px;transition:.15s;
+  }
+  .xbtn:hover:not(:disabled){border-color:var(--teal);color:var(--teal);}
+  .xbtn:disabled{opacity:.35;cursor:not-allowed;}
+  .xbtn.primary{background:var(--teal);color:#04211c;border-color:var(--teal);font-weight:700;}
+  .xbtn.primary:hover{filter:brightness(1.08);}
+
+  .timeline-title{
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .timeline-title .t{font-family:'Zen Kaku Gothic New';font-weight:700;font-size:14px;}
+  .timeline-title .n{font-size:11.5px;color:var(--text-dim);font-family:'JetBrains Mono';}
+
+  .caption-list{display:flex;flex-direction:column;gap:8px;max-height:640px;overflow-y:auto;padding-right:4px;}
+  .cap-row{
+    display:flex;gap:10px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+    cursor:pointer;transition:.12s;
+  }
+  .cap-row:hover{border-color:#33506322;}
+  .cap-row.playing{border-color:var(--teal);background:#122c2a;}
+  .cap-row .idx{font-family:'JetBrains Mono';font-size:11px;color:var(--text-dim);flex:none;width:22px;padding-top:2px;}
+  .cap-row .body{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .cap-row .time{font-family:'JetBrains Mono';font-size:10.5px;color:var(--amber);}
+  .cap-row .txt{
+    font-size:13px;line-height:1.4;background:transparent;border:none;color:var(--text);width:100%;
+    resize:none;font-family:'Noto Sans JP';outline:none;padding:0;
+  }
+  .cap-row .del{flex:none;color:var(--text-dim);background:none;border:none;cursor:pointer;font-size:13px;padding:2px 4px;}
+  .cap-row .del:hover{color:var(--danger);}
+  .cap-row .preview{font-family:var(--cap-font);font-size:12px;color:var(--text-dim);line-height:1.3;}
+
+  .font-presets{display:flex;gap:8px;}
+  .font-btn{flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:8px;
+    padding:10px 4px;font-size:12px;cursor:pointer;transition:.15s;text-align:center;}
+  .font-btn:hover{border-color:var(--teal);}
+  .font-btn.active{border-color:var(--teal);background:#123531;color:var(--teal);}
+  .font-custom-row{display:flex;gap:6px;}
+  .font-custom-row input{flex:1;}
+  .font-apply{background:var(--panel-2);border:1px solid var(--line);color:var(--text-dim);border-radius:8px;
+    padding:0 12px;cursor:pointer;font-size:12px;flex:none;}
+  .font-apply:hover{border-color:var(--teal);color:var(--teal);}
+
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);
+    background:var(--panel-2);border:1px solid var(--line);padding:5px 10px;border-radius:20px;width:fit-content;
+  }
+  .badge .d{width:6px;height:6px;border-radius:50%;background:var(--teal);}
+
+  a.dl{color:inherit;text-decoration:none;}
+  .scrollbar-hide::-webkit-scrollbar{width:6px;}
+  .scrollbar-hide::-webkit-scrollbar-thumb{background:var(--line);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="mark">自</div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に</small></div>
+</div>
+
+<div class="layout">
+  <div class="side scrollbar-hide">
+
+    <div class="block">
+      <div class="block-title"><span class="num">1</span>動画を読み込む</div>
+      <div class="drop" id="drop">
+        <input type="file" id="fileInput" accept="video/*">
+        <div class="ic">🎬</div>
+        <div class="t1">クリック、またはドラッグ&ドロップ</div>
+        <div class="t2">mp4 / mov などの動画ファイル（縦型・横型どちらもOK）</div>
+      </div>
+      <div id="fileChip" style="display:none"></div>
+    </div>
+
+    <div class="block">
+      <div class="block-title"><span class="num">2</span>OpenAI APIキー</div>
+      <input type="password" id="apiKey" placeholder="sk-...">
+      <div class="key-row">
+        <label class="key-toggle"><input type="checkbox" id="saveKeyToggle">次回から自動入力する（この端末に保存）</label>
+        <span class="key-status" id="keyStatus"></span>
+      </div>
+      <div class="hint">Whisper（音声認識）の文字起こしに使用。OpenAI以外には送信されません。保存をONにするとこの端末に紐づいた場所に暗号化されずに残るので、共有端末では避けてください。</div>
+    </div>
+
+    <div class="block">
+      <div class="block-title"><span class="num">3</span>無音カットの設定</div>
+      <div class="slider-row">
+        <div class="lbl"><span>無音と判定する感度</span><b id="thVal">-30 dB</b></div>
+        <input type="range" id="threshold" min="-50" max="-15" value="-30" step="1">
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><span>この長さ以上の無音をカット</span><b id="durVal">0.50 秒</b></div>
+        <input type="range" id="minDur" min="0.2" max="2.0" value="0.5" step="0.1">
+      </div>
+      <div class="slider-row">
+        <div class="lbl"><span>カット時の余白（間を残す）</span><b id="padVal">0.15 秒</b></div>
+        <input type="range" id="padding" min="0" max="0.5" value="0.15" step="0.05">
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="block-title"><span class="num">4</span>字幕フォント</div>
+      <div class="font-presets" id="fontPresets">
+        <button type="button" class="font-btn active" data-font="Noto Sans JP" style="font-family:'Noto Sans JP'">標準</button>
+        <button type="button" class="font-btn" data-font="Zen Kaku Gothic New" style="font-family:'Zen Kaku Gothic New'">インパクト</button>
+        <button type="button" class="font-btn" data-font="Kosugi Maru" style="font-family:'Kosugi Maru'">まる文字</button>
+      </div>
+      <div class="font-custom-row">
+        <input type="text" id="customFont" placeholder="Googleフォント名（例: M PLUS 1p）">
+        <button type="button" class="font-apply" id="applyCustomFont">適用</button>
+      </div>
+      <div class="hint">字幕内で <b>**大事な言葉**</b> のように囲むと、その部分だけ大きく表示されます</div>
+    </div>
+
+    <button class="run-btn" id="runBtn" disabled>自動カット & 字幕生成を開始</button>
+
+    <div class="steps" id="steps">
+      <div class="step" data-step="load">    <span class="dot"></span>エンジンを準備中</div>
+      <div class="step" data-step="silence"> <span class="dot"></span>無音区間を検出</div>
+      <div class="step" data-step="cut">      <span class="dot"></span>不要な間をカット</div>
+      <div class="step" data-step="audio">    <span class="dot"></span>音声を書き出し</div>
+      <div class="step" data-step="whisper">  <span class="dot"></span>文字起こし（Whisper）</div>
+      <div class="step" data-step="build">    <span class="dot"></span>字幕を組み立て</div>
+    </div>
+
+  </div>
+
+  <div class="main">
+    <div class="empty" id="emptyState">
+      <div class="big">動画を読み込むと<span>自動でカット & 字幕</span>を作ります</div>
+      <div style="max-width:420px;font-size:13px;line-height:1.7;">
+        左のパネルから動画とAPIキーを設定して「開始」を押すだけ。しゃべっていない部分は自動で削除され、話した内容はそのまま字幕になります。
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="player-wrap">
+        <div class="player">
+          <div class="frame" id="frame">
+            <video id="player" controls></video>
+            <div class="cap-overlay"><div class="box" id="capOverlay" style="display:none"></div></div>
+          </div>
+        </div>
+
+        <div class="map-caption">
+          <span>無音マップ（元動画）</span>
+          <span><b id="keptPct">--</b> を残してカット</span>
+        </div>
+        <div class="silence-map" id="silenceMap"></div>
+
+        <div class="badge" id="resultBadge" style="display:none"></div>
+
+        <div class="export-row">
+          <button class="xbtn primary" id="dlVideo" disabled>🎬 カット済み動画をダウンロード</button>
+          <button class="xbtn" id="dlSrt" disabled>📝 字幕(SRT)をダウンロード</button>
+          <button class="xbtn" id="dlBurn" disabled>🔥 字幕焼き込み動画（β）</button>
+        </div>
+      </div>
+
+      <div class="timeline-wrap">
+        <div class="timeline-title">
+          <span class="t">字幕タイムライン</span>
+          <span class="n" id="capCount"></span>
+        </div>
+        <br>
+        <div class="caption-list scrollbar-hide" id="captionList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const { createFFmpeg, fetchFile } = FFmpeg;
+const ffmpeg = createFFmpeg({ log: false, corePath: 'https://cdnjs.cloudflare.com/ajax/libs/ffmpeg-core/0.11.0/ffmpeg-core.js' });
+let ffmpegLoaded = false;
+let ffmpegLogBuffer = [];
+ffmpeg.setLogger(({type, message}) => { ffmpegLogBuffer.push(message); });
+
+let videoFile = null;
+let videoDuration = 0;
+let captions = []; // {start, end, text}
+let cutVideoBlobUrl = null;
+let cutVideoBytes = null;
+let srtText = '';
+
+// ---------- UI: file drop ----------
+const drop = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const fileChip = document.getElementById('fileChip');
+const runBtn = document.getElementById('runBtn');
+const apiKeyInput = document.getElementById('apiKey');
+
+drop.addEventListener('click', () => fileInput.click());
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('drag');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+function handleFile(file){
+  videoFile = file;
+  const url = URL.createObjectURL(file);
+  const probe = document.createElement('video');
+  probe.preload = 'metadata';
+  probe.src = url;
+  probe.onloadedmetadata = () => {
+    videoDuration = probe.duration;
+    fileChip.style.display = 'flex';
+    fileChip.className = 'file-chip';
+    fileChip.innerHTML = `<span class="name">📄 ${file.name}</span><span class="dur">${fmtTime(videoDuration)} ・ ${fmtSize(file.size)}</span>`;
+    checkReady();
+  };
+}
+function checkReady(){
+  runBtn.disabled = !(videoFile && apiKeyInput.value.trim().length > 10);
+}
+
+// ---------- saved API key (persists on this device via artifact storage) ----------
+const saveKeyToggle = document.getElementById('saveKeyToggle');
+const keyStatus = document.getElementById('keyStatus');
+const KEY_STORAGE_NAME = 'cutcap_openai_key';
+let saveTimer = null;
+
+async function loadSavedKey(){
+  try{
+    const res = await window.storage.get(KEY_STORAGE_NAME, false);
+    if (res && res.value){
+      apiKeyInput.value = res.value;
+      saveKeyToggle.checked = true;
+      keyStatus.textContent = '保存済み';
+      checkReady();
+    }
+  }catch(e){ /* no saved key yet, ignore */ }
+}
+loadSavedKey();
+
+async function persistKey(){
+  const v = apiKeyInput.value.trim();
+  if (v.length < 10) return;
+  try{
+    await window.storage.set(KEY_STORAGE_NAME, v, false);
+    keyStatus.textContent = '保存済み';
+  }catch(e){
+    keyStatus.textContent = '保存に失敗しました';
+  }
+}
+async function clearSavedKey(){
+  try{ await window.storage.delete(KEY_STORAGE_NAME, false); }catch(e){}
+  keyStatus.textContent = '';
+}
+apiKeyInput.addEventListener('input', () => {
+  checkReady();
+  keyStatus.textContent = '';
+  if (saveKeyToggle.checked){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(persistKey, 700);
+  }
+});
+saveKeyToggle.addEventListener('change', () => {
+  if (saveKeyToggle.checked) persistKey();
+  else clearSavedKey();
+});
+
+// ---------- sliders ----------
+const thEl = document.getElementById('threshold'), thVal = document.getElementById('thVal');
+const durEl = document.getElementById('minDur'), durVal = document.getElementById('durVal');
+const padEl = document.getElementById('padding'), padVal = document.getElementById('padVal');
+thEl.oninput = () => thVal.textContent = thEl.value + ' dB';
+durEl.oninput = () => durVal.textContent = parseFloat(durEl.value).toFixed(2) + ' 秒';
+padEl.oninput = () => padVal.textContent = parseFloat(padEl.value).toFixed(2) + ' 秒';
+
+// ---------- caption font ----------
+let captionFont = 'Noto Sans JP';
+const fontBtns = document.querySelectorAll('.font-btn');
+function applyCaptionFont(){
+  document.documentElement.style.setProperty('--cap-font', `'${captionFont}', sans-serif`);
+}
+fontBtns.forEach(b => b.addEventListener('click', () => {
+  fontBtns.forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  captionFont = b.dataset.font;
+  applyCaptionFont();
+}));
+document.getElementById('applyCustomFont').addEventListener('click', () => {
+  const name = document.getElementById('customFont').value.trim();
+  if (!name) return;
+  const linkId = 'dyn-font-' + name.replace(/\s+/g,'-');
+  if (!document.getElementById(linkId)){
+    const link = document.createElement('link');
+    link.id = linkId; link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(name).replace(/%20/g,'+') + ':wght@400;700&display=swap';
+    document.head.appendChild(link);
+  }
+  fontBtns.forEach(x => x.classList.remove('active'));
+  captionFont = name;
+  applyCaptionFont();
+});
+applyCaptionFont();
+
+// ---------- step UI ----------
+function setStep(name, state){ // state: 'active' | 'done'
+  document.querySelectorAll('.step').forEach(s => {
+    if (s.dataset.step === name){ s.classList.remove('active','done'); s.classList.add(state); }
+  });
+}
+function resetSteps(){
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active','done'));
+}
+
+function fmtTime(t){
+  if (!isFinite(t)) return '00:00';
+  const m = Math.floor(t/60), s = Math.floor(t%60);
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+function fmtSize(bytes){
+  if (!bytes) return '';
+  const mb = bytes / (1024*1024);
+  if (mb < 1) return Math.round(bytes/1024) + 'KB';
+  if (mb < 1000) return mb.toFixed(1) + 'MB';
+  return (mb/1024).toFixed(2) + 'GB';
+}
+function escapeHtml(s){
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+function renderEmphHTML(text){
+  const safe = escapeHtml(text);
+  return safe.replace(/\*\*(.+?)\*\*/g, '<span class="emph">$1</span>');
+}
+function srtTime(t){
+  const h = Math.floor(t/3600), m = Math.floor((t%3600)/60), s = Math.floor(t%60);
+  const ms = Math.round((t - Math.floor(t)) * 1000);
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},${String(ms).padStart(3,'0')}`;
+}
+
+// ---------- main pipeline ----------
+runBtn.addEventListener('click', runPipeline);
+
+async function runPipeline(){
+  runBtn.disabled = true;
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('stage').classList.add('show');
+  resetSteps();
+  ffmpegLogBuffer = [];
+
+  try{
+    setStep('load','active');
+    if (!ffmpegLoaded){ await ffmpeg.load(); ffmpegLoaded = true; }
+    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(videoFile));
+    setStep('load','done');
+
+    // ---- duration (fallback if metadata failed) ----
+    if (!videoDuration || !isFinite(videoDuration)){
+      ffmpegLogBuffer = [];
+      try{ await ffmpeg.run('-i','input.mp4'); }catch(e){}
+      const durMatch = ffmpegLogBuffer.join('\n').match(/Duration:\s*(\d+):(\d+):(\d+\.\d+)/);
+      if (durMatch) videoDuration = (+durMatch[1])*3600 + (+durMatch[2])*60 + (+durMatch[3]);
+    }
+
+    // ---- silence detect ----
+    setStep('silence','active');
+    const threshold = thEl.value, minDur = durEl.value, padding = parseFloat(padEl.value);
+    ffmpegLogBuffer = [];
+    await ffmpeg.run('-i','input.mp4','-af',`silencedetect=noise=${threshold}dB:d=${minDur}`,'-f','null','-');
+    const log = ffmpegLogBuffer.join('\n');
+    const silences = [];
+    const startRe = /silence_start:\s*([\d.]+)/g;
+    const endRe = /silence_end:\s*([\d.]+)/g;
+    let starts = [...log.matchAll(startRe)].map(m => parseFloat(m[1]));
+    let ends = [...log.matchAll(endRe)].map(m => parseFloat(m[1]));
+    for (let i=0;i<Math.min(starts.length, ends.length);i++){
+      silences.push({start: starts[i], end: ends[i]});
+    }
+    // shrink silences by padding (keep a little breathing room around speech)
+    const shrunk = silences.map(s => ({
+      start: Math.min(s.start + padding, s.end),
+      end: Math.max(s.end - padding, s.start)
+    })).filter(s => s.end - s.start > 0.05);
+
+    // build keep segments = complement of shrunk silences over [0, duration]
+    let keep = [];
+    let cursor = 0;
+    for (const s of shrunk){
+      if (s.start > cursor) keep.push({start: cursor, end: s.start});
+      cursor = Math.max(cursor, s.end);
+    }
+    if (cursor < videoDuration) keep.push({start: cursor, end: videoDuration});
+    keep = keep.filter(k => k.end - k.start > 0.15);
+    if (keep.length === 0) keep = [{start:0, end: videoDuration}];
+    setStep('silence','done');
+
+    renderSilenceMap(silences, videoDuration);
+
+    // ---- cut (trim + concat) ----
+    setStep('cut','active');
+    let filterParts = [];
+    let concatInputs = '';
+    keep.forEach((k, i) => {
+      filterParts.push(`[0:v]trim=start=${k.start}:end=${k.end},setpts=PTS-STARTPTS[v${i}]`);
+      filterParts.push(`[0:a]atrim=start=${k.start}:end=${k.end},asetpts=PTS-STARTPTS[a${i}]`);
+      concatInputs += `[v${i}][a${i}]`;
+    });
+    const filterComplex = filterParts.join(';') + `;${concatInputs}concat=n=${keep.length}:v=1:a=1[outv][outa]`;
+    await ffmpeg.run('-i','input.mp4','-filter_complex', filterComplex, '-map','[outv]','-map','[outa]',
+      '-c:v','libx264','-preset','ultrafast','-crf','23','-c:a','aac','cut.mp4');
+    cutVideoBytes = ffmpeg.FS('readFile','cut.mp4');
+    cutVideoBlobUrl = URL.createObjectURL(new Blob([cutVideoBytes.buffer], {type:'video/mp4'}));
+    const player = document.getElementById('player');
+    player.src = cutVideoBlobUrl;
+    setStep('cut','done');
+
+    const removed = shrunk.reduce((a,s)=>a + (s.end-s.start), 0);
+    const keptRatio = Math.max(0, Math.min(100, Math.round(100 * (videoDuration - removed) / videoDuration)));
+    document.getElementById('keptPct').textContent = keptRatio + '%';
+
+    // ---- extract audio from CUT video (so Whisper timestamps match final timeline) ----
+    setStep('audio','active');
+    await ffmpeg.run('-i','cut.mp4','-vn','-acodec','pcm_s16le','-ar','16000','-ac','1','audio.wav');
+    const audioBytes = ffmpeg.FS('readFile','audio.wav');
+    setStep('audio','done');
+
+    // ---- whisper ----
+    setStep('whisper','active');
+    const form = new FormData();
+    form.append('file', new Blob([audioBytes.buffer], {type:'audio/wav'}), 'audio.wav');
+    form.append('model','whisper-1');
+    form.append('language','ja');
+    form.append('response_format','verbose_json');
+    const res = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method:'POST',
+      headers: { 'Authorization': `Bearer ${apiKeyInput.value.trim()}` },
+      body: form
+    });
+    if (!res.ok){
+      const errBody = await res.text();
+      throw new Error('Whisper APIエラー: ' + res.status + ' ' + errBody.slice(0,200));
+    }
+    const data = await res.json();
+    setStep('whisper','done');
+
+    // ---- build captions ----
+    setStep('build','active');
+    captions = (data.segments || []).map(s => ({
+      start: s.start, end: s.end, text: (s.text||'').trim()
+    })).filter(c => c.text.length > 0);
+    if (captions.length === 0 && data.text){
+      captions = [{start:0, end: Math.min(6, keep.reduce((a,k)=>a+(k.end-k.start),0)), text: data.text.trim()}];
+    }
+    srtText = captions.map((c,i) => `${i+1}\n${srtTime(c.start)} --> ${srtTime(c.end)}\n${c.text}\n`).join('\n');
+    renderCaptionList();
+    setStep('build','done');
+
+    document.getElementById('dlVideo').disabled = false;
+    document.getElementById('dlSrt').disabled = false;
+    document.getElementById('dlBurn').disabled = false;
+    const badge = document.getElementById('resultBadge');
+    badge.style.display = 'inline-flex';
+    badge.innerHTML = `<span class="d"></span>完了 — ${keep.length}個のクリップ / 字幕 ${captions.length}件`;
+
+  } catch(err){
+    console.error(err);
+    alert('処理中にエラーが発生しました：\n' + err.message);
+  } finally {
+    runBtn.disabled = false;
+  }
+}
+
+function renderSilenceMap(silences, duration){
+  const map = document.getElementById('silenceMap');
+  map.innerHTML = '';
+  if (!duration) return;
+  // base: full teal (speech), overlay dark hatch for silence
+  const base = document.createElement('div');
+  base.className = 'seg';
+  base.style.left = '0%'; base.style.width = '100%';
+  map.appendChild(base);
+  silences.forEach(s => {
+    const el = document.createElement('div');
+    el.className = 'cut';
+    el.style.left = (100*s.start/duration) + '%';
+    el.style.width = Math.max(0.3, 100*(s.end-s.start)/duration) + '%';
+    map.appendChild(el);
+  });
+}
+
+function renderCaptionList(){
+  const list = document.getElementById('captionList');
+  list.innerHTML = '';
+  document.getElementById('capCount').textContent = captions.length + ' 件';
+  captions.forEach((c, i) => {
+    const row = document.createElement('div');
+    row.className = 'cap-row';
+    row.dataset.idx = i;
+    row.innerHTML = `
+      <div class="idx">${String(i+1).padStart(2,'0')}</div>
+      <div class="body">
+        <div class="time">${fmtTime(c.start)} → ${fmtTime(c.end)}</div>
+        <textarea class="txt" rows="1">${c.text}</textarea>
+        <div class="preview"></div>
+      </div>
+      <button class="del" title="この字幕を削除">✕</button>
+    `;
+    const ta = row.querySelector('textarea');
+    const preview = row.querySelector('.preview');
+    preview.innerHTML = renderEmphHTML(c.text);
+    ta.addEventListener('input', () => {
+      captions[i].text = ta.value;
+      preview.innerHTML = renderEmphHTML(ta.value);
+      srtText = rebuildSrt();
+    });
+    row.querySelector('.del').addEventListener('click', (e) => {
+      e.stopPropagation();
+      captions.splice(i,1); srtText = rebuildSrt(); renderCaptionList();
+    });
+    row.addEventListener('click', () => {
+      document.getElementById('player').currentTime = c.start;
+      document.getElementById('player').play();
+    });
+    list.appendChild(row);
+  });
+}
+function rebuildSrt(){
+  return captions.map((c,i) => `${i+1}\n${srtTime(c.start)} --> ${srtTime(c.end)}\n${c.text}\n`).join('\n');
+}
+
+// ---------- caption overlay sync ----------
+const player = document.getElementById('player');
+const capOverlay = document.getElementById('capOverlay');
+player.addEventListener('timeupdate', () => {
+  const t = player.currentTime;
+  const cur = captions.find(c => t >= c.start && t <= c.end);
+  const rows = document.querySelectorAll('.cap-row');
+  rows.forEach(r => r.classList.remove('playing'));
+  if (cur){
+    capOverlay.style.display = 'block';
+    capOverlay.innerHTML = renderEmphHTML(cur.text);
+    const idx = captions.indexOf(cur);
+    const row = document.querySelector(`.cap-row[data-idx="${idx}"]`);
+    if (row) row.classList.add('playing');
+  } else {
+    capOverlay.style.display = 'none';
+  }
+});
+
+// ---------- downloads ----------
+document.getElementById('dlVideo').addEventListener('click', () => {
+  if (!cutVideoBlobUrl) return;
+  const a = document.createElement('a');
+  a.href = cutVideoBlobUrl; a.download = 'autocut_video.mp4'; a.click();
+});
+document.getElementById('dlSrt').addEventListener('click', () => {
+  const blob = new Blob([srtText], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'autocut_captions.srt'; a.click();
+});
+
+document.getElementById('dlBurn').addEventListener('click', async () => {
+  const btn = document.getElementById('dlBurn');
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ フォント準備中…';
+  try{
+    const FONT_FILES = {
+      'Zen Kaku Gothic New': 'https://cdn.jsdelivr.net/gh/googlefonts/zen-kaku-gothic-new/fonts/ttf/ZenKakuGothicNew-Bold.ttf',
+      'Kosugi Maru': 'https://cdn.jsdelivr.net/gh/googlefonts/kosugi-maru/fonts/ttf/KosugiMaru-Regular.ttf'
+    };
+    const FALLBACK_FONT_URL = 'https://cdn.jsdelivr.net/gh/googlefonts/kosugi-maru/fonts/ttf/KosugiMaru-Regular.ttf';
+    if (window.__cutcapLoadedFont !== captionFont){
+      try{ ffmpeg.FS('unlink','font.ttf'); }catch(e){}
+      const url = FONT_FILES[captionFont] || FALLBACK_FONT_URL;
+      let fontResp = await fetch(url);
+      if (!fontResp.ok) fontResp = await fetch(FALLBACK_FONT_URL);
+      if (!fontResp.ok) throw new Error('フォントの取得に失敗しました');
+      const fontBuf = new Uint8Array(await fontResp.arrayBuffer());
+      ffmpeg.FS('writeFile','font.ttf', fontBuf);
+      window.__cutcapLoadedFont = captionFont;
+    }
+    btn.textContent = '🔥 焼き込み中…';
+    function esc(s){
+      return s.replace(/\\/g,'\\\\').replace(/:/g,'\\:').replace(/'/g,"\u2019")
+        .replace(/,/g,'\\,').replace(/\[/g,'\\[').replace(/\]/g,'\\]').replace(/%/g,'\\%');
+    }
+    const chain = captions.map(c =>
+      `drawtext=fontfile=/font.ttf:text='${esc(c.text.replace(/\*\*/g,''))}':enable='between(t,${c.start},${c.end})':`+
+      `x=(w-text_w)/2:y=h-h*0.16:fontsize=h*0.045:fontcolor=white:box=1:boxcolor=black@0.55:boxborderw=14`
+    ).join(',');
+    await ffmpeg.run('-i','cut.mp4','-vf', chain, '-c:a','copy','burned.mp4');
+    const out = ffmpeg.FS('readFile','burned.mp4');
+    const blob = new Blob([out.buffer], {type:'video/mp4'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'autocut_burned.mp4'; a.click();
+  }catch(err){
+    console.error(err);
+    alert('字幕の焼き込みに失敗しました。カット済み動画とSRTを別々にダウンロードしてご利用ください。\n(' + err.message + ')');
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+});
+</script>
+</body>
+</html>
