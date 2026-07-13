@@ -49,7 +49,24 @@
     display:flex;flex-direction:column;gap:22px;
     overflow-y:auto;
   }
-  .block{display:flex;flex-direction:column;gap:10px;}
+  .block{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;}
+  .block > .block-title{
+    padding:13px 14px;cursor:pointer;background:#1a1a1a;color:#fff;user-select:none;-webkit-user-select:none;
+    border-bottom:1px solid transparent;
+  }
+  .block:not(.closed) > .block-title{border-bottom-color:var(--line);}
+  .block > .block-title .num{background:#333;border-color:#4a4a4a;color:#ddd;}
+  .block > .block-title .bstatus{color:#b9b9c2;}
+  .block > .block-title .bstatus.ok{color:#6fdc9f;}
+  .block > .block-title .bstatus.req{color:#ff9d8a;}
+  .block > .block-title .chev{color:#b9b9c2;}
+  .block-body{display:flex;flex-direction:column;gap:10px;padding:14px;}
+  .block.closed .block-body{display:none;}
+  .bstatus{margin-left:auto;font-size:10.5px;color:var(--text-dim);font-family:'Noto Sans JP';font-weight:400;letter-spacing:0;text-align:right;}
+  .bstatus.ok{color:#1a7f4e;}
+  .bstatus.req{color:#b0483a;}
+  .chev{font-size:10px;color:var(--text-dim);transition:transform .2s;margin-left:8px;flex:none;}
+  .block.closed .chev{transform:rotate(-90deg);}
   .block-title{
     font-family:'Shippori Mincho',serif;font-weight:600;font-size:13.5px;
     color:var(--text);letter-spacing:.1em;display:flex;align-items:center;gap:8px;
@@ -277,7 +294,7 @@
 
 <div class="topbar">
   <div class="mark">自</div>
-  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v4.4</span></small></div>
+  <div class="brand">自動動画カット&字幕生成<small>無音を自動カット、しゃべった内容を自動で字幕に <span style="opacity:.6">v4.7</span></small></div>
 </div>
 
 <div class="layout">
@@ -509,6 +526,7 @@
     </div>
 
     <button class="run-btn" id="runBtn" disabled>自動カット & 字幕生成を開始</button>
+    <div class="hint">⚠️ iPhoneでは処理中に画面ロックや他アプリへの切り替えをすると最初からやり直しになる場合があります。処理中は画面を点けたままお待ちください。長い動画は「🚀 最速」モードがおすすめです。</div>
 
     <div class="steps" id="steps">
       <div class="step" data-step="load">    <span class="dot"></span>エンジンを準備中</div>
@@ -688,6 +706,36 @@ function playDoneSound(){
   }catch(e){}
 }
 let lastCutDur = 0;
+
+// ---------- iPhoneメモリ対策: 処理中は動画プレビューのデコーダを解放 ----------
+function releaseMediaPreviews(){
+  ['srcPreview','eyePreview','player'].forEach(id => {
+    const v = document.getElementById(id);
+    if (v && v.src){
+      try{ v.pause(); }catch(e){}
+      v.dataset.savedSrc = v.src;
+      v.removeAttribute('src');
+      try{ v.load(); }catch(e){}
+    }
+  });
+}
+function restoreMediaPreviews(exceptPlayer){
+  ['srcPreview','eyePreview','player'].forEach(id => {
+    if (exceptPlayer && id === 'player') return;
+    const v = document.getElementById(id);
+    if (v && v.dataset.savedSrc){
+      v.src = v.dataset.savedSrc;
+      delete v.dataset.savedSrc;
+    }
+  });
+}
+let wakeLock = null;
+async function acquireWakeLock(){
+  try{ if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); }catch(e){}
+}
+function releaseWakeLock(){
+  try{ if (wakeLock){ wakeLock.release(); wakeLock = null; } }catch(e){}
+}
 
 // ---------- 効果音（合成音・試聴・WAV書き出し） ----------
 let seType = 'pop';
@@ -1527,6 +1575,47 @@ async function renderMyPresets(){
       delete presets[name];
       await saveMyPresets(presets);
       renderMyPresets();
+
+// ---------- サイドバーをアコーディオン化 + 設定状況の表示 ----------
+(function initAccordion(){
+  const blocks = document.querySelectorAll('.side .block');
+  blocks.forEach((block, idx) => {
+    const title = block.querySelector('.block-title');
+    if (!title) return;
+    const body = document.createElement('div');
+    body.className = 'block-body';
+    while (title.nextSibling) body.appendChild(title.nextSibling);
+    block.appendChild(body);
+    const status = document.createElement('span'); status.className = 'bstatus';
+    const chev = document.createElement('span'); chev.className = 'chev'; chev.textContent = '▼';
+    title.appendChild(status); title.appendChild(chev);
+    title.addEventListener('click', () => block.classList.toggle('closed'));
+    if (idx >= 2) block.classList.add('closed'); // 初期は「パスコード」「動画」のみ開く
+  });
+})();
+function updateBlockStatuses(){
+  const blocks = document.querySelectorAll('.side .block');
+  const set = (i, txt, cls) => {
+    const st = blocks[i] && blocks[i].querySelector('.bstatus');
+    if (st){ st.textContent = txt; st.className = 'bstatus' + (cls ? ' ' + cls : ''); }
+  };
+  const keyOk = apiKeyInput.value.trim().length > 10;
+  set(0, keyOk ? '✓ 設定済み' : '未入力（必須）', keyOk ? 'ok' : 'req');
+  set(1, videoFile ? '✓ 読み込み済み' : '未選択（必須）', videoFile ? 'ok' : 'req');
+  set(2, eyecatchFile ? '✓ 追加済み' : 'なし・任意', eyecatchFile ? 'ok' : '');
+  set(3, iconFile ? '✓ 追加済み' : 'なし・任意', iconFile ? 'ok' : '');
+  const sm = document.querySelector('input[name=speedMode]:checked');
+  const fm = document.querySelector('input[name=fpsMode]:checked');
+  const smTxt = sm ? ({fast:'高速', fastest:'最速', quality:'画質優先'})[sm.value] : '';
+  const fmTxt = fm ? (fm.value === 'orig' ? 'fps維持' : fm.value + 'fps') : '';
+  set(4, smTxt + '・' + fmTxt, '');
+  set(5, captionFont + '・' + Math.round(capStyle.scale*100) + '%', '');
+  const seOnEl = document.getElementById('seOn');
+  set(6, seOnEl && seOnEl.checked ? '✓ ON' : 'OFF・任意', seOnEl && seOnEl.checked ? 'ok' : '');
+  set(7, bgmFile ? '✓ 追加済み' : 'なし・任意', bgmFile ? 'ok' : '');
+}
+updateBlockStatuses();
+setInterval(updateBlockStatuses, 800);
     });
     wrap.appendChild(chip);
   });
@@ -1545,8 +1634,90 @@ document.getElementById('savePresetBtn').addEventListener('click', async () => {
   await saveMyPresets(presets);
   document.getElementById('presetName').value = '';
   renderMyPresets();
+
+// ---------- サイドバーをアコーディオン化 + 設定状況の表示 ----------
+(function initAccordion(){
+  const blocks = document.querySelectorAll('.side .block');
+  blocks.forEach((block, idx) => {
+    const title = block.querySelector('.block-title');
+    if (!title) return;
+    const body = document.createElement('div');
+    body.className = 'block-body';
+    while (title.nextSibling) body.appendChild(title.nextSibling);
+    block.appendChild(body);
+    const status = document.createElement('span'); status.className = 'bstatus';
+    const chev = document.createElement('span'); chev.className = 'chev'; chev.textContent = '▼';
+    title.appendChild(status); title.appendChild(chev);
+    title.addEventListener('click', () => block.classList.toggle('closed'));
+    if (idx >= 2) block.classList.add('closed'); // 初期は「パスコード」「動画」のみ開く
+  });
+})();
+function updateBlockStatuses(){
+  const blocks = document.querySelectorAll('.side .block');
+  const set = (i, txt, cls) => {
+    const st = blocks[i] && blocks[i].querySelector('.bstatus');
+    if (st){ st.textContent = txt; st.className = 'bstatus' + (cls ? ' ' + cls : ''); }
+  };
+  const keyOk = apiKeyInput.value.trim().length > 10;
+  set(0, keyOk ? '✓ 設定済み' : '未入力（必須）', keyOk ? 'ok' : 'req');
+  set(1, videoFile ? '✓ 読み込み済み' : '未選択（必須）', videoFile ? 'ok' : 'req');
+  set(2, eyecatchFile ? '✓ 追加済み' : 'なし・任意', eyecatchFile ? 'ok' : '');
+  set(3, iconFile ? '✓ 追加済み' : 'なし・任意', iconFile ? 'ok' : '');
+  const sm = document.querySelector('input[name=speedMode]:checked');
+  const fm = document.querySelector('input[name=fpsMode]:checked');
+  const smTxt = sm ? ({fast:'高速', fastest:'最速', quality:'画質優先'})[sm.value] : '';
+  const fmTxt = fm ? (fm.value === 'orig' ? 'fps維持' : fm.value + 'fps') : '';
+  set(4, smTxt + '・' + fmTxt, '');
+  set(5, captionFont + '・' + Math.round(capStyle.scale*100) + '%', '');
+  const seOnEl = document.getElementById('seOn');
+  set(6, seOnEl && seOnEl.checked ? '✓ ON' : 'OFF・任意', seOnEl && seOnEl.checked ? 'ok' : '');
+  set(7, bgmFile ? '✓ 追加済み' : 'なし・任意', bgmFile ? 'ok' : '');
+}
+updateBlockStatuses();
+setInterval(updateBlockStatuses, 800);
 });
 renderMyPresets();
+
+// ---------- サイドバーをアコーディオン化 + 設定状況の表示 ----------
+(function initAccordion(){
+  const blocks = document.querySelectorAll('.side .block');
+  blocks.forEach((block, idx) => {
+    const title = block.querySelector('.block-title');
+    if (!title) return;
+    const body = document.createElement('div');
+    body.className = 'block-body';
+    while (title.nextSibling) body.appendChild(title.nextSibling);
+    block.appendChild(body);
+    const status = document.createElement('span'); status.className = 'bstatus';
+    const chev = document.createElement('span'); chev.className = 'chev'; chev.textContent = '▼';
+    title.appendChild(status); title.appendChild(chev);
+    title.addEventListener('click', () => block.classList.toggle('closed'));
+    if (idx >= 2) block.classList.add('closed'); // 初期は「パスコード」「動画」のみ開く
+  });
+})();
+function updateBlockStatuses(){
+  const blocks = document.querySelectorAll('.side .block');
+  const set = (i, txt, cls) => {
+    const st = blocks[i] && blocks[i].querySelector('.bstatus');
+    if (st){ st.textContent = txt; st.className = 'bstatus' + (cls ? ' ' + cls : ''); }
+  };
+  const keyOk = apiKeyInput.value.trim().length > 10;
+  set(0, keyOk ? '✓ 設定済み' : '未入力（必須）', keyOk ? 'ok' : 'req');
+  set(1, videoFile ? '✓ 読み込み済み' : '未選択（必須）', videoFile ? 'ok' : 'req');
+  set(2, eyecatchFile ? '✓ 追加済み' : 'なし・任意', eyecatchFile ? 'ok' : '');
+  set(3, iconFile ? '✓ 追加済み' : 'なし・任意', iconFile ? 'ok' : '');
+  const sm = document.querySelector('input[name=speedMode]:checked');
+  const fm = document.querySelector('input[name=fpsMode]:checked');
+  const smTxt = sm ? ({fast:'高速', fastest:'最速', quality:'画質優先'})[sm.value] : '';
+  const fmTxt = fm ? (fm.value === 'orig' ? 'fps維持' : fm.value + 'fps') : '';
+  set(4, smTxt + '・' + fmTxt, '');
+  set(5, captionFont + '・' + Math.round(capStyle.scale*100) + '%', '');
+  const seOnEl = document.getElementById('seOn');
+  set(6, seOnEl && seOnEl.checked ? '✓ ON' : 'OFF・任意', seOnEl && seOnEl.checked ? 'ok' : '');
+  set(7, bgmFile ? '✓ 追加済み' : 'なし・任意', bgmFile ? 'ok' : '');
+}
+updateBlockStatuses();
+setInterval(updateBlockStatuses, 800);
 
 // ---------- step UI ----------
 let currentStage = '';
@@ -1616,6 +1787,8 @@ async function runPipeline(){
 
   try{
     initAudioCtx(); // 完了音のためにユーザー操作時点で音声を有効化
+    acquireWakeLock(); // 処理中の画面スリープを防止（対応端末のみ）
+    releaseMediaPreviews(); // メモリ確保のためプレビューを一時解放
     setStep('load','active');
     startEta({ est: ffmpeg ? 2 : 22 });
     await initFFmpeg();
@@ -1788,7 +1961,9 @@ async function runPipeline(){
     const pi = document.getElementById('playIcon');
     if (pi) pi.style.display = 'none';
     cutVideoBlobUrl = URL.createObjectURL(new Blob([cutVideoBytes.buffer], {type:'video/mp4'}));
+    cutVideoBytes = null; // メモリ解放（ダウンロードはblob URL経由で可能）
     const player = document.getElementById('player');
+    delete player.dataset.savedSrc;
     player.src = cutVideoBlobUrl;
     setStep('cut','done');
 
@@ -1878,6 +2053,8 @@ async function runPipeline(){
     alert('処理中にエラーが発生しました（' + (stageNames[currentStage]||'不明な工程') + '）：\n' + errText(err));
   } finally {
     stopEta();
+    releaseWakeLock();
+    restoreMediaPreviews(true); // 元動画・アイキャッチのプレビューを復元（プレーヤーはカット済み動画のまま）
     runBtn.disabled = false;
   }
 }
@@ -1972,6 +2149,8 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
   const original = btn.textContent;
   btn.disabled = true; btn.textContent = '⏳ 字幕を描画中…';
   initAudioCtx();
+  acquireWakeLock();
+  releaseMediaPreviews();
   try{
     if (!captions.length) throw new Error('字幕がありません');
 
@@ -2136,10 +2315,11 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
       '-c:v','libx264','-preset','ultrafast','-crf','23', ...audioCodec, 'burned.mp4']);
     if (seEnabled){ try{ await ffmpeg.deleteFile('se.wav'); }catch(e){} }
     if (bgmName){ try{ await ffmpeg.deleteFile(bgmName); }catch(e){} }
-    const out = await ffmpeg.readFile('burned.mp4');
+    let out = await ffmpeg.readFile('burned.mp4');
     for (let i = 0; i < captions.length; i++){ try{ await ffmpeg.deleteFile('cap'+i+'.png'); }catch(e){} }
     try{ await ffmpeg.deleteFile('burned.mp4'); }catch(e){}
     const blob = new Blob([out.buffer], {type:'video/mp4'});
+    out = null;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'autocut_burned.mp4'; a.click();
     playDoneSound();
@@ -2148,6 +2328,10 @@ document.getElementById('dlBurn').addEventListener('click', async () => {
     alert('字幕の焼き込みに失敗しました。カット済み動画とSRTを別々にダウンロードしてご利用ください。\n(' + errText(err) + ')');
   } finally {
     stopEta();
+    releaseWakeLock();
+    restoreMediaPreviews(false);
+    const pl = document.getElementById('player');
+    if (pl && !pl.src && cutVideoBlobUrl) pl.src = cutVideoBlobUrl;
     btn.disabled = false; btn.textContent = original;
   }
 });
