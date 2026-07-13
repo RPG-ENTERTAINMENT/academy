@@ -308,7 +308,7 @@
 
   <div id="controls">
 
-    <div id="hint">画像・メモは撮影中もプレビューだけに表示され、録画には映り込みません。撮影しながら変更もできます。</div>
+    <div id="hint">画像・メモは撮影中もプレビューだけに表示され、録画には映り込みません。本体を指でタップすると回転・拡大縮小ができます。</div>
 
     <div class="row" id="opacityRow" style="display:none;">
       <label>画像の濃さ</label>
@@ -341,7 +341,7 @@
       <input type="range" id="eyeSlider" min="0" max="100" value="30">
     </div>
     <div class="row" id="noseRow" style="display:none;">
-      <label>鼻の幅</label>
+      <label>鼻の大きさ</label>
       <input type="range" id="noseSlider" min="0" max="100" value="25">
     </div>
 
@@ -720,18 +720,49 @@
     pinchPunch(rightCenter.x, rightCenter.y, rightWidth*1.5, s);
   }
 
+  function ellipticalPinch(cx, cy, radiusX, radiusY, strength){
+    if(radiusX<=2 || radiusY<=2) return;
+    const x0 = Math.max(0, Math.floor(cx-radiusX));
+    const y0 = Math.max(0, Math.floor(cy-radiusY));
+    const w = Math.min(Math.ceil(radiusX*2), canvas.width-x0);
+    const h = Math.min(Math.ceil(radiusY*2), canvas.height-y0);
+    if(w<=0||h<=0) return;
+    let src;
+    try{ src = ctx.getImageData(x0,y0,w,h); }catch(e){ return; }
+    const dst = ctx.createImageData(w,h);
+    const s = src.data, d = dst.data;
+    const rcx = cx-x0, rcy = cy-y0;
+    for(let j=0;j<h;j++){
+      for(let i=0;i<w;i++){
+        const dx=i-rcx, dy=j-rcy;
+        const ed = Math.sqrt((dx/radiusX)*(dx/radiusX) + (dy/radiusY)*(dy/radiusY));
+        let sx=i, sy=j;
+        if(ed<1 && ed>0){
+          const t = Math.pow(Math.sin(Math.PI/2*ed), -strength);
+          sx = rcx + dx*t;
+          sy = rcy + dy*t;
+        }
+        const ix = Math.min(w-1,Math.max(0,Math.round(sx)));
+        const iy = Math.min(h-1,Math.max(0,Math.round(sy)));
+        const si=(iy*w+ix)*4, di=(j*w+i)*4;
+        d[di]=s[si]; d[di+1]=s[si+1]; d[di+2]=s[si+2]; d[di+3]=s[si+3];
+      }
+    }
+    ctx.putImageData(dst, x0, y0);
+  }
+
   function applyNoseNarrow(landmarks, strength){
     if(strength<=0) return;
-    const s = (strength/100) * 0.5;
+    const s = (strength/100) * 0.55;
     const tip = landmarkPoint(landmarks, 4);
     const bridge = landmarkPoint(landmarks, 6);
     const alaL = landmarkPoint(landmarks, 129);
     const alaR = landmarkPoint(landmarks, 358);
     const cx = (alaL.x+alaR.x)/2;
     const cy = (tip.y+bridge.y)/2;
-    const radiusX = Math.max(20, distPt(alaL,alaR) * 0.9);
-    const radiusY = Math.max(radiusX*1.2, distPt(tip,bridge)*1.4);
-    horizontalPinch(cx, cy, radiusX, radiusY, -s);
+    const radiusX = Math.max(20, distPt(alaL,alaR) * 1.1);
+    const radiusY = Math.max(radiusX*1.1, distPt(tip,bridge)*1.6);
+    ellipticalPinch(cx, cy, radiusX, radiusY, -s);
   }
 
   function startRenderLoop(){
@@ -762,12 +793,19 @@
     return document.getElementById('stage').getBoundingClientRect();
   }
 
-  function attachDrag(wrapEl){
+  function attachDrag(wrapEl, onTap){
     let dragging = false, startX=0, startY=0, startLeft=0, startTop=0;
+    let downX=0, downY=0, downTime=0, moved=false, pressing=false;
     function down(e){
-      if(!wrapEl.classList.contains('editing')) return;
-      e.preventDefault();
       const p = e.touches ? e.touches[0] : e;
+      pressing = true;
+      moved = false;
+      downX = p.clientX; downY = p.clientY; downTime = Date.now();
+      if(!wrapEl.classList.contains('editing')){
+        dragging = false;
+        return;
+      }
+      e.preventDefault();
       const rect = wrapEl.getBoundingClientRect();
       const stageRect = getStageRect();
       dragging = true;
@@ -776,16 +814,26 @@
       startTop = rect.top - stageRect.top;
     }
     function move(e){
-      if(!dragging) return;
-      e.preventDefault();
+      if(!pressing) return;
       const p = e.touches ? e.touches[0] : e;
-      const dx = p.clientX - startX;
-      const dy = p.clientY - startY;
-      wrapEl.style.left = (startLeft + dx) + 'px';
-      wrapEl.style.top = (startTop + dy) + 'px';
-      wrapEl.style.transform = 'none';
+      const ddx = p.clientX - downX, ddy = p.clientY - downY;
+      if(Math.hypot(ddx, ddy) > 6) moved = true;
+      if(dragging){
+        e.preventDefault();
+        const dx = p.clientX - startX;
+        const dy = p.clientY - startY;
+        wrapEl.style.left = (startLeft + dx) + 'px';
+        wrapEl.style.top = (startTop + dy) + 'px';
+        wrapEl.style.transform = 'none';
+      }
     }
-    function up(){ dragging = false; }
+    function up(){
+      if(pressing && !moved){
+        const dt = Date.now() - downTime;
+        if(dt < 600 && onTap) onTap();
+      }
+      dragging = false; pressing = false; moved = false;
+    }
     wrapEl.addEventListener('mousedown', down);
     wrapEl.addEventListener('touchstart', down, {passive:false});
     window.addEventListener('mousemove', move);
@@ -886,10 +934,10 @@
     window.addEventListener('touchend', up);
   }
 
-  attachDrag(overlayWrap);
+  attachDrag(overlayWrap, ()=>{ if(hasImage) overlayWrap.classList.toggle('editing'); });
   attachResizeWidth(overlayWrap, imgResizeHandle);
   attachRotate(imgRotateHandle, overlayWrap, overlayImg, ()=>imgRotation, (v)=>{imgRotation=v;});
-  attachDrag(memoWrap);
+  attachDrag(memoWrap, ()=>{ if(hasMemo) memoWrap.classList.toggle('editing'); });
   attachResizeFont(memoResizeHandle, memoText);
   attachRotate(memoRotateHandle, memoWrap, memoText, ()=>memoRotation, (v)=>{memoRotation=v;});
 
@@ -974,7 +1022,7 @@
   });
 
   infoBtn.addEventListener('click', ()=>{
-    alert('使い方\n1. カメラを起動\n2. 画像を選ぶ／メモを追加（位置・大きさ・濃さを調整できます）\n3. ✨美顔をオンにすると肌の滑らかさ・目の大きさ・鼻の幅を調整できます（初回オンにした時に美顔モデルを読み込みます）\n4. 赤いボタンで撮影開始 → 画面にだけ表示され、録画には映りません\n5. 撮影中でも画像の変更やメモの編集ができます\n6. もう一度押して撮影終了 → 動画を保存できます');
+    alert('使い方\n1. カメラを起動\n2. 画像を選ぶ／メモを追加（本体を指でタップすると位置調整の枠が出て、ドラッグで移動・角の丸ボタンで拡大縮小・上の丸ボタンで90度ずつ回転できます）\n3. ✨美顔をオンにすると肌の滑らかさ・目の大きさ・鼻の大きさを調整できます（初回オンにした時に美顔モデルを読み込みます）\n4. 赤いボタンで撮影開始 → 画面にだけ表示され、録画には映りません\n5. 撮影中でも画像の変更やメモの編集ができます\n6. もう一度押して撮影終了 → 動画を保存できます');
   });
 
   window.addEventListener('load', ()=>{ startCamera(); });
