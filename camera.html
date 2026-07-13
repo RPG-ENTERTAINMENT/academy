@@ -71,27 +71,6 @@
     pointer-events:none;
   }
   .layerWrap.editing .layerFrame{ display:block; }
-  .resizeHandle{
-    position:absolute; right:-14px; bottom:-14px;
-    width:34px; height:34px; border-radius:50%;
-    background:var(--accent);
-    display:none;
-    align-items:center; justify-content:center;
-    box-shadow:0 2px 8px rgba(0,0,0,0.4);
-  }
-  .layerWrap.editing .resizeHandle{ display:flex; }
-  .resizeHandle svg{ width:16px; height:16px; fill:#fff; }
-
-  .rotateHandle{
-    position:absolute; top:-46px; left:50%; transform:translateX(-50%);
-    width:34px; height:34px; border-radius:50%;
-    background:#3d4147;
-    display:none;
-    align-items:center; justify-content:center;
-    box-shadow:0 2px 8px rgba(0,0,0,0.4);
-  }
-  .layerWrap.editing .rotateHandle{ display:flex; }
-  .rotateHandle svg{ width:17px; height:17px; fill:#fff; }
 
   #overlayWrap{ top:16%; left:50%; transform:translate(-50%,0); width:68%; }
   #overlayImg{
@@ -281,23 +260,11 @@
     <div id="overlayWrap" class="layerWrap">
       <img id="overlayImg" src="" alt="lyrics">
       <div class="layerFrame"></div>
-      <div class="resizeHandle" id="imgResizeHandle">
-        <svg viewBox="0 0 24 24"><path d="M22 22H16V20H20V16H22V22M2 22V16H4V20H8V22H2M22 2V8H20V4H16V2H22M2 2H8V4H4V8H2V2Z"/></svg>
-      </div>
-      <div class="rotateHandle" id="imgRotateHandle">
-        <svg viewBox="0 0 24 24"><path d="M12 6V2L7 7l5 5V8c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-      </div>
     </div>
 
     <div id="memoWrap" class="layerWrap">
       <div id="memoText"></div>
       <div class="layerFrame"></div>
-      <div class="resizeHandle" id="memoResizeHandle">
-        <svg viewBox="0 0 24 24"><path d="M22 22H16V20H20V16H22V22M2 22V16H4V20H8V22H2M22 2V8H20V4H16V2H22M2 2H8V4H4V8H2V2Z"/></svg>
-      </div>
-      <div class="rotateHandle" id="memoRotateHandle">
-        <svg viewBox="0 0 24 24"><path d="M12 6V2L7 7l5 5V8c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
-      </div>
     </div>
 
     <div id="topBar">
@@ -308,7 +275,7 @@
 
   <div id="controls">
 
-    <div id="hint">画像・メモは撮影中もプレビューだけに表示され、録画には映り込みません。本体を指でタップすると回転・拡大縮小ができます。</div>
+    <div id="hint">画像・メモは撮影中もプレビューだけに表示され、録画には映り込みません。指1本で移動、2本指でつまむと拡大縮小・ひねると回転できます。</div>
 
     <div class="row" id="opacityRow" style="display:none;">
       <label>画像の濃さ</label>
@@ -338,11 +305,11 @@
     </div>
     <div class="row" id="eyeRow" style="display:none;">
       <label>目の大きさ</label>
-      <input type="range" id="eyeSlider" min="0" max="100" value="30">
+      <input type="range" id="eyeSlider" min="-100" max="100" value="15">
     </div>
     <div class="row" id="noseRow" style="display:none;">
       <label>鼻の大きさ</label>
-      <input type="range" id="noseSlider" min="0" max="100" value="25">
+      <input type="range" id="noseSlider" min="-100" max="100" value="-15">
     </div>
 
     <button id="editModeBtn">位置調整：オフ</button>
@@ -390,16 +357,12 @@
   const fileInput = document.getElementById('fileInput');
   const overlayWrap = document.getElementById('overlayWrap');
   const overlayImg = document.getElementById('overlayImg');
-  const imgResizeHandle = document.getElementById('imgResizeHandle');
-  const imgRotateHandle = document.getElementById('imgRotateHandle');
   const opacityRow = document.getElementById('opacityRow');
   const opacitySlider = document.getElementById('opacitySlider');
 
   const memoBtn = document.getElementById('memoBtn');
   const memoWrap = document.getElementById('memoWrap');
   const memoText = document.getElementById('memoText');
-  const memoResizeHandle = document.getElementById('memoResizeHandle');
-  const memoRotateHandle = document.getElementById('memoRotateHandle');
   const memoOpacityRow = document.getElementById('memoOpacityRow');
   const memoOpacitySlider = document.getElementById('memoOpacitySlider');
   const memoFontRow = document.getElementById('memoFontRow');
@@ -439,9 +402,11 @@
   let recordedUrl = null;
   let imgRotation = 0;
   let memoRotation = 0;
+  let imgScale = 1;
+  let memoScale = 1;
 
   let beautyEnabled = false;
-  let skinStrengthVal = 40, eyeStrengthVal = 30, noseStrengthVal = 25;
+  let skinStrengthVal = 40, eyeStrengthVal = 15, noseStrengthVal = -15;
   let faceLandmarker = null;
   let faceLandmarkerLoading = false;
   let renderLoopStarted = false;
@@ -689,7 +654,7 @@
 
   function applySkinSmooth(landmarks, strength){
     if(strength<=0) return;
-    const blurPx = 1 + (strength/100)*6;
+    const blurPx = 1 + (strength/100)*10;
     ctx.save();
     const path = new Path2D();
     FACE_OVAL.forEach((idx,i)=>{
@@ -699,7 +664,7 @@
     path.closePath();
     ctx.clip(path);
     ctx.filter = 'blur(' + blurPx + 'px)';
-    ctx.globalAlpha = 0.5 + (strength/100)*0.4;
+    ctx.globalAlpha = 0.5 + (strength/100)*0.45;
     ctx.drawImage(canvas, 0, 0);
     ctx.filter = 'none';
     ctx.globalAlpha = 1;
@@ -709,9 +674,9 @@
     restoreSharpBox(boundingBoxFromIndices(landmarks, MOUTH_BOX_IDX, 0.5));
   }
 
-  function applyEyeEnlarge(landmarks, strength){
-    if(strength<=0) return;
-    const s = (strength/100) * 0.6;
+  function applyEyeEnlarge(landmarks, sliderVal){
+    if(sliderVal === 0) return;
+    const s = (sliderVal/100) * 0.6;
     const leftCenter = centerOf(landmarks, LEFT_EYE_IDX);
     const leftWidth = distPt(landmarkPoint(landmarks,33), landmarkPoint(landmarks,133));
     pinchPunch(leftCenter.x, leftCenter.y, leftWidth*1.5, s);
@@ -751,9 +716,9 @@
     ctx.putImageData(dst, x0, y0);
   }
 
-  function applyNoseNarrow(landmarks, strength){
-    if(strength<=0) return;
-    const s = (strength/100) * 0.55;
+  function applyNoseNarrow(landmarks, sliderVal){
+    if(sliderVal === 0) return;
+    const s = (sliderVal/100) * 0.55;
     const tip = landmarkPoint(landmarks, 4);
     const bridge = landmarkPoint(landmarks, 6);
     const alaL = landmarkPoint(landmarks, 129);
@@ -762,7 +727,7 @@
     const cy = (tip.y+bridge.y)/2;
     const radiusX = Math.max(20, distPt(alaL,alaR) * 1.1);
     const radiusY = Math.max(radiusX*1.1, distPt(tip,bridge)*1.6);
-    ellipticalPinch(cx, cy, radiusX, radiusY, -s);
+    ellipticalPinch(cx, cy, radiusX, radiusY, s);
   }
 
   function startRenderLoop(){
@@ -793,153 +758,93 @@
     return document.getElementById('stage').getBoundingClientRect();
   }
 
-  function attachDrag(wrapEl, onTap){
-    let dragging = false, startX=0, startY=0, startLeft=0, startTop=0;
+  function attachGestures(wrapEl, targetEl, getScale, setScale, getRotation, setRotation, onTap){
+    let mode = null; // 'drag' | 'pinch'
+    let startX=0, startY=0, startLeft=0, startTop=0;
+    let initialDist=0, initialAngle=0, initialScale=1, initialRotation=0;
     let downX=0, downY=0, downTime=0, moved=false, pressing=false;
-    function down(e){
-      const p = e.touches ? e.touches[0] : e;
-      pressing = true;
-      moved = false;
+
+    function touchDist(t1,t2){ return Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY); }
+    function touchAngle(t1,t2){ return Math.atan2(t2.clientY-t1.clientY, t2.clientX-t1.clientX) * 180/Math.PI; }
+
+    function beginDrag(p){
+      pressing = true; moved = false;
       downX = p.clientX; downY = p.clientY; downTime = Date.now();
-      if(!wrapEl.classList.contains('editing')){
-        dragging = false;
-        return;
-      }
-      e.preventDefault();
+      mode = 'drag';
+      if(!wrapEl.classList.contains('editing')) return;
       const rect = wrapEl.getBoundingClientRect();
       const stageRect = getStageRect();
-      dragging = true;
       startX = p.clientX; startY = p.clientY;
       startLeft = rect.left - stageRect.left;
       startTop = rect.top - stageRect.top;
     }
-    function move(e){
-      if(!pressing) return;
-      const p = e.touches ? e.touches[0] : e;
-      const ddx = p.clientX - downX, ddy = p.clientY - downY;
-      if(Math.hypot(ddx, ddy) > 6) moved = true;
-      if(dragging){
+    function beginPinch(t1, t2){
+      mode = 'pinch';
+      pressing = false;
+      initialDist = touchDist(t1,t2);
+      initialAngle = touchAngle(t1,t2);
+      initialScale = getScale();
+      initialRotation = getRotation();
+    }
+
+    function down(e){
+      if(e.touches && e.touches.length >= 2){
         e.preventDefault();
-        const dx = p.clientX - startX;
-        const dy = p.clientY - startY;
-        wrapEl.style.left = (startLeft + dx) + 'px';
-        wrapEl.style.top = (startTop + dy) + 'px';
-        wrapEl.style.transform = 'none';
+        beginPinch(e.touches[0], e.touches[1]);
+      } else {
+        const p = e.touches ? e.touches[0] : e;
+        beginDrag(p);
       }
     }
-    function up(){
-      if(pressing && !moved){
+    function move(e){
+      if(mode === 'pinch' && e.touches && e.touches.length >= 2){
+        e.preventDefault();
+        const t1 = e.touches[0], t2 = e.touches[1];
+        const newDist = touchDist(t1,t2);
+        const newAngle = touchAngle(t1,t2);
+        const scale = Math.max(0.3, Math.min(4, initialScale * (newDist/Math.max(1,initialDist))));
+        let rotation = initialRotation + (newAngle - initialAngle);
+        rotation = Math.round(rotation / 5) * 5;
+        setScale(scale);
+        setRotation(rotation);
+        targetEl.style.transform = 'rotate(' + rotation + 'deg) scale(' + scale + ')';
+      } else if(mode === 'drag'){
+        const p = e.touches ? e.touches[0] : e;
+        const ddx = p.clientX - downX, ddy = p.clientY - downY;
+        if(Math.hypot(ddx, ddy) > 6) moved = true;
+        if(wrapEl.classList.contains('editing')){
+          e.preventDefault();
+          const dx = p.clientX - startX;
+          const dy = p.clientY - startY;
+          wrapEl.style.left = (startLeft + dx) + 'px';
+          wrapEl.style.top = (startTop + dy) + 'px';
+          wrapEl.style.transform = 'none';
+        }
+      }
+    }
+    function up(e){
+      if(mode === 'drag' && pressing && !moved){
         const dt = Date.now() - downTime;
         if(dt < 600 && onTap) onTap();
       }
-      dragging = false; pressing = false; moved = false;
+      if(e.touches && e.touches.length === 1){
+        beginDrag(e.touches[0]);
+        pressing = false; moved = true;
+      } else if(!e.touches || e.touches.length === 0){
+        mode = null; pressing = false; moved = false;
+      }
     }
     wrapEl.addEventListener('mousedown', down);
     wrapEl.addEventListener('touchstart', down, {passive:false});
     window.addEventListener('mousemove', move);
     window.addEventListener('touchmove', move, {passive:false});
     window.addEventListener('mouseup', up);
-    window.addEventListener('touchend', up);
+    window.addEventListener('touchend', up, {passive:false});
   }
 
-  function attachResizeWidth(wrapEl, handleEl){
-    let resizing = false, startX = 0, startWidth = 0;
-    function down(e){
-      if(!wrapEl.classList.contains('editing')) return;
-      e.stopPropagation(); e.preventDefault();
-      const p = e.touches ? e.touches[0] : e;
-      resizing = true;
-      startX = p.clientX;
-      startWidth = wrapEl.getBoundingClientRect().width;
-    }
-    function move(e){
-      if(!resizing) return;
-      e.preventDefault();
-      const p = e.touches ? e.touches[0] : e;
-      const dx = p.clientX - startX;
-      const stageRect = getStageRect();
-      let newWidth = Math.max(80, startWidth + dx);
-      newWidth = Math.min(newWidth, stageRect.width * 1.5);
-      wrapEl.style.width = newWidth + 'px';
-    }
-    function up(){ resizing = false; }
-    handleEl.addEventListener('mousedown', down);
-    handleEl.addEventListener('touchstart', down, {passive:false});
-    window.addEventListener('mousemove', move);
-    window.addEventListener('touchmove', move, {passive:false});
-    window.addEventListener('mouseup', up);
-    window.addEventListener('touchend', up);
-  }
+  attachGestures(overlayWrap, overlayImg, ()=>imgScale, (v)=>{imgScale=v;}, ()=>imgRotation, (v)=>{imgRotation=v;}, ()=>{ if(hasImage) overlayWrap.classList.toggle('editing'); });
+  attachGestures(memoWrap, memoText, ()=>memoScale, (v)=>{memoScale=v;}, ()=>memoRotation, (v)=>{memoRotation=v;}, ()=>{ if(hasMemo) memoWrap.classList.toggle('editing'); });
 
-  function attachResizeFont(handleEl, textEl){
-    let resizing = false, startX = 0, startSize = 0;
-    function down(e){
-      if(!memoWrap.classList.contains('editing')) return;
-      e.stopPropagation(); e.preventDefault();
-      const p = e.touches ? e.touches[0] : e;
-      resizing = true;
-      startX = p.clientX;
-      startSize = parseFloat(getComputedStyle(textEl).fontSize);
-    }
-    function move(e){
-      if(!resizing) return;
-      e.preventDefault();
-      const p = e.touches ? e.touches[0] : e;
-      const dx = p.clientX - startX;
-      let newSize = Math.max(12, Math.min(72, startSize + dx * 0.2));
-      textEl.style.fontSize = newSize + 'px';
-      memoFontSlider.value = Math.round(newSize);
-    }
-    function up(){ resizing = false; }
-    handleEl.addEventListener('mousedown', down);
-    handleEl.addEventListener('touchstart', down, {passive:false});
-    window.addEventListener('mousemove', move);
-    window.addEventListener('touchmove', move, {passive:false});
-    window.addEventListener('mouseup', up);
-    window.addEventListener('touchend', up);
-  }
-
-  function attachRotate(handleEl, wrapEl, targetEl, getRotation, setRotation){
-    let rotating = false, centerX = 0, centerY = 0, startAngle = 0, startRotation = 0;
-    function angleAt(p){
-      return Math.atan2(p.clientY - centerY, p.clientX - centerX) * 180 / Math.PI;
-    }
-    function down(e){
-      if(!wrapEl.classList.contains('editing')) return;
-      e.stopPropagation(); e.preventDefault();
-      const p = e.touches ? e.touches[0] : e;
-      const rect = wrapEl.getBoundingClientRect();
-      centerX = rect.left + rect.width/2;
-      centerY = rect.top + rect.height/2;
-      rotating = true;
-      startAngle = angleAt(p);
-      startRotation = getRotation();
-    }
-    function move(e){
-      if(!rotating) return;
-      e.preventDefault();
-      const p = e.touches ? e.touches[0] : e;
-      const delta = angleAt(p) - startAngle;
-      let newRotation = startRotation + delta;
-      newRotation = Math.round(newRotation / 90) * 90;
-      setRotation(newRotation);
-      targetEl.style.transform = 'rotate(' + newRotation + 'deg)';
-    }
-    function up(){ rotating = false; }
-    handleEl.addEventListener('mousedown', down);
-    handleEl.addEventListener('touchstart', down, {passive:false});
-    window.addEventListener('mousemove', move);
-    window.addEventListener('touchmove', move, {passive:false});
-    window.addEventListener('mouseup', up);
-    window.addEventListener('touchend', up);
-  }
-
-  attachDrag(overlayWrap, ()=>{ if(hasImage) overlayWrap.classList.toggle('editing'); });
-  attachResizeWidth(overlayWrap, imgResizeHandle);
-  attachRotate(imgRotateHandle, overlayWrap, overlayImg, ()=>imgRotation, (v)=>{imgRotation=v;});
-  attachDrag(memoWrap, ()=>{ if(hasMemo) memoWrap.classList.toggle('editing'); });
-  attachResizeFont(memoResizeHandle, memoText);
-  attachRotate(memoRotateHandle, memoWrap, memoText, ()=>memoRotation, (v)=>{memoRotation=v;});
 
   function pickMimeType(){
     const candidates = [
@@ -1022,7 +927,7 @@
   });
 
   infoBtn.addEventListener('click', ()=>{
-    alert('使い方\n1. カメラを起動\n2. 画像を選ぶ／メモを追加（本体を指でタップすると位置調整の枠が出て、ドラッグで移動・角の丸ボタンで拡大縮小・上の丸ボタンで90度ずつ回転できます）\n3. ✨美顔をオンにすると肌の滑らかさ・目の大きさ・鼻の大きさを調整できます（初回オンにした時に美顔モデルを読み込みます）\n4. 赤いボタンで撮影開始 → 画面にだけ表示され、録画には映りません\n5. 撮影中でも画像の変更やメモの編集ができます\n6. もう一度押して撮影終了 → 動画を保存できます');
+    alert('使い方\n1. カメラを起動\n2. 画像を選ぶ／メモを追加（本体をタップすると枠が表示され、指1本で移動、2本指でつまむと拡大縮小、ひねると回転できます）\n3. ✨美顔をオンにすると肌の滑らかさ・目の大きさ（小さくも可）・鼻の大きさ（小さくも可）を調整できます（初回オンにした時に美顔モデルを読み込みます）\n4. 赤いボタンで撮影開始 → 画面にだけ表示され、録画には映りません\n5. 撮影中でも画像の変更やメモの編集ができます\n6. もう一度押して撮影終了 → 動画を保存できます');
   });
 
   window.addEventListener('load', ()=>{ startCamera(); });
