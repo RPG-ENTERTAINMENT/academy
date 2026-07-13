@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>歌詞カメラ</title>
+<style>
+  :root{
+    --bg:#0b0c0e;
+    --panel:#15171a;
+    --line:#2a2d31;
+    --accent:#ff5470;
+    --text:#eef0f2;
+    --sub:#9aa0a6;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+    overscroll-behavior:none;
+  }
+  #app{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+    height:100%;
+    height:100dvh;
+  }
+
+  #stage{
+    position:relative;
+    flex:1;
+    background:#000;
+    overflow:hidden;
+    touch-action:none;
+  }
+  #video{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    transform:scaleX(-1);
+    background:#000;
+  }
+  #placeholder{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:12px;
+    color:var(--sub); text-align:center; padding:24px;
+  }
+  #placeholder button{
+    background:var(--accent); color:#fff; border:none; border-radius:999px;
+    padding:14px 28px; font-size:15px; font-weight:600;
+  }
+
+  .layerWrap{
+    position:absolute;
+    display:none;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+    z-index:4;
+  }
+  .layerWrap.visible{ display:block; }
+  .layerFrame{
+    position:absolute; inset:-8px;
+    border:2px dashed rgba(255,255,255,0.55);
+    border-radius:10px;
+    display:none;
+    pointer-events:none;
+  }
+  .layerWrap.editing .layerFrame{ display:block; }
+  .resizeHandle{
+    position:absolute; right:-14px; bottom:-14px;
+    width:34px; height:34px; border-radius:50%;
+    background:var(--accent);
+    display:none;
+    align-items:center; justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+  }
+  .layerWrap.editing .resizeHandle{ display:flex; }
+  .resizeHandle svg{ width:16px; height:16px; fill:#fff; }
+
+  #overlayWrap{ top:16%; left:50%; transform:translate(-50%,0); width:68%; }
+  #overlayImg{
+    width:100%; height:auto; display:block;
+    pointer-events:none;
+    border-radius:6px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.5);
+  }
+
+  #memoWrap{ top:60%; left:50%; transform:translate(-50%,0); max-width:80%; }
+  #memoText{
+    display:inline-block;
+    white-space:pre-wrap;
+    word-break:break-word;
+    color:#fff;
+    background:rgba(0,0,0,0.55);
+    padding:10px 14px;
+    border-radius:10px;
+    font-size:22px;
+    line-height:1.4;
+    pointer-events:none;
+    box-shadow:0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  #topBar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;
+    background:linear-gradient(rgba(0,0,0,0.55), transparent);
+    z-index:5;
+  }
+  #recTimer{
+    background:rgba(0,0,0,0.5);
+    padding:6px 12px; border-radius:999px;
+    font-size:13px; font-weight:600; letter-spacing:0.3px;
+    display:none; align-items:center; gap:6px;
+  }
+  #recTimer.show{ display:inline-flex; }
+  #recDot{
+    width:8px; height:8px; border-radius:50%; background:var(--accent);
+    animation:blink 1s infinite;
+  }
+  @keyframes blink{ 50%{opacity:0.2;} }
+
+  .iconBtn{
+    background:rgba(0,0,0,0.5);
+    border:none; color:#fff; border-radius:999px;
+    width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+  }
+
+  #controls{
+    background:var(--panel);
+    border-top:1px solid var(--line);
+    padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 12px);
+    display:flex; flex-direction:column; gap:10px;
+    max-height:46vh;
+    overflow-y:auto;
+  }
+  .row{ display:flex; align-items:center; gap:10px; }
+  .row label{ font-size:12px; color:var(--sub); width:64px; flex-shrink:0; }
+  input[type=range]{ flex:1; accent-color:var(--accent); }
+
+  #hint{ font-size:12px; color:var(--sub); text-align:center; line-height:1.5; }
+
+  #layerBtnRow{ display:flex; gap:8px; }
+  #layerBtnRow button{
+    flex:1;
+    background:#1f2226; color:var(--text);
+    border:1px solid var(--line); border-radius:10px;
+    padding:11px 6px; font-size:13px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+  }
+  #editModeBtn{
+    background:#1f2226; color:var(--sub);
+    border:1px solid var(--line); border-radius:10px;
+    padding:10px; font-size:13px; font-weight:600;
+  }
+  #editModeBtn.active{ color:var(--accent); border-color:var(--accent); }
+
+  #mainRow{
+    display:flex; align-items:center; justify-content:center;
+    gap:36px;
+    margin-top:2px;
+  }
+  #switchCamBtn{
+    background:#1f2226; border:1px solid var(--line);
+    color:var(--text); width:46px; height:46px; border-radius:50%;
+    font-size:18px;
+  }
+  #recordBtn{
+    width:72px; height:72px; border-radius:50%;
+    border:4px solid #fff;
+    background:transparent;
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #recordBtn::after{
+    content:"";
+    width:56px; height:56px; border-radius:50%;
+    background:var(--accent);
+    transition:all .15s ease;
+  }
+  #recordBtn.recording::after{
+    width:28px; height:28px; border-radius:8px;
+  }
+  #spacer46{ width:46px; height:46px; }
+
+  #downloadBar{ display:none; gap:10px; }
+  #downloadBar.show{ display:flex; }
+  #downloadBar a, #downloadBar button{
+    flex:1;
+    text-align:center;
+    padding:12px; border-radius:10px; font-size:14px; font-weight:600;
+    text-decoration:none;
+  }
+  #downloadLink{ background:var(--accent); color:#fff; }
+  #discardBtn{ background:#1f2226; color:var(--sub); border:1px solid var(--line); }
+
+  #fileInput{ display:none; }
+
+  #memoModalBackdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6);
+    display:none; align-items:center; justify-content:center;
+    z-index:20; padding:24px;
+  }
+  #memoModalBackdrop.show{ display:flex; }
+  #memoModal{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:16px; width:100%; max-width:420px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  #memoModal h3{ margin:0; font-size:15px; }
+  #memoTextarea{
+    width:100%; min-height:110px; resize:vertical;
+    background:#0f1113; color:var(--text);
+    border:1px solid var(--line); border-radius:10px;
+    padding:10px; font-size:15px; line-height:1.5;
+    font-family:inherit;
+  }
+  #memoModalBtns{ display:flex; gap:10px; }
+  #memoModalBtns button{
+    flex:1; padding:11px; border-radius:10px; font-size:14px; font-weight:600; border:none;
+  }
+  #memoSaveBtn{ background:var(--accent); color:#fff; }
+  #memoCancelBtn{ background:#1f2226; color:var(--sub); border:1px solid var(--line); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="stage">
+    <video id="video" autoplay playsinline muted></video>
+
+    <div id="placeholder">
+      <div style="font-size:15px;">カメラへのアクセスを許可してください</div>
+      <button id="startCamBtn">カメラを起動</button>
+    </div>
+
+    <div id="overlayWrap" class="layerWrap">
+      <img id="overlayImg" src="" alt="lyrics">
+      <div class="layerFrame"></div>
+      <div class="resizeHandle" id="imgResizeHandle">
+        <svg viewBox="0 0 24 24"><path d="M22 22H16V20H20V16H22V22M2 22V16H4V20H8V22H2M22 2V8H20V4H16V2H22M2 2H8V4H4V8H2V2Z"/></svg>
+      </div>
+    </div>
+
+    <div id="memoWrap" class="layerWrap">
+      <div id="memoText"></div>
+      <div class="layerFrame"></div>
+      <div class="resizeHandle" id="memoResizeHandle">
+        <svg viewBox="0 0 24 24"><path d="M22 22H16V20H20V16H22V22M2 22V16H4V20H8V22H2M22 2V8H20V4H16V2H22M2 2H8V4H4V8H2V2Z"/></svg>
+      </div>
+    </div>
+
+    <div id="topBar">
+      <div id="recTimer"><span id="recDot"></span><span id="recTimeText">00:00</span></div>
+      <button class="iconBtn" id="infoBtn">?</button>
+    </div>
+  </div>
+
+  <div id="controls">
+
+    <div id="hint">画像・メモは撮影中もプレビューだけに表示され、録画には映り込みません。撮影しながら変更もできます。</div>
+
+    <div class="row" id="opacityRow" style="display:none;">
+      <label>画像の濃さ</label>
+      <input type="range" id="opacitySlider" min="20" max="100" value="90">
+    </div>
+
+    <div class="row" id="memoOpacityRow" style="display:none;">
+      <label>メモの濃さ</label>
+      <input type="range" id="memoOpacitySlider" min="20" max="100" value="55">
+    </div>
+    <div class="row" id="memoFontRow" style="display:none;">
+      <label>文字の大きさ</label>
+      <input type="range" id="memoFontSlider" min="14" max="60" value="22">
+    </div>
+
+    <div id="layerBtnRow">
+      <button id="lyricsBtn">🖼️ 画像を選ぶ</button>
+      <button id="memoBtn">📝 メモを追加</button>
+    </div>
+
+    <button id="editModeBtn">位置調整：オフ</button>
+
+    <input type="file" id="fileInput" accept="image/*">
+
+    <div id="mainRow">
+      <button id="switchCamBtn">🔄</button>
+      <button id="recordBtn"></button>
+      <div id="spacer46"></div>
+    </div>
+
+    <div id="downloadBar">
+      <a id="downloadLink" href="#" download="movie.mp4">動画を保存</a>
+      <button id="discardBtn">削除してやり直す</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="memoModalBackdrop">
+  <div id="memoModal">
+    <h3 id="memoModalTitle">メモを追加</h3>
+    <textarea id="memoTextarea" placeholder="歌詞やメモを入力..."></textarea>
+    <div id="memoModalBtns">
+      <button id="memoCancelBtn">キャンセル</button>
+      <button id="memoSaveBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const video = document.getElementById('video');
+  const placeholder = document.getElementById('placeholder');
+  const startCamBtn = document.getElementById('startCamBtn');
+  const switchCamBtn = document.getElementById('switchCamBtn');
+  const recordBtn = document.getElementById('recordBtn');
+  const recTimer = document.getElementById('recTimer');
+  const recTimeText = document.getElementById('recTimeText');
+
+  const lyricsBtn = document.getElementById('lyricsBtn');
+  const fileInput = document.getElementById('fileInput');
+  const overlayWrap = document.getElementById('overlayWrap');
+  const overlayImg = document.getElementById('overlayImg');
+  const imgResizeHandle = document.getElementById('imgResizeHandle');
+  const opacityRow = document.getElementById('opacityRow');
+  const opacitySlider = document.getElementById('opacitySlider');
+
+  const memoBtn = document.getElementById('memoBtn');
+  const memoWrap = document.getElementById('memoWrap');
+  const memoText = document.getElementById('memoText');
+  const memoResizeHandle = document.getElementById('memoResizeHandle');
+  const memoOpacityRow = document.getElementById('memoOpacityRow');
+  const memoOpacitySlider = document.getElementById('memoOpacitySlider');
+  const memoFontRow = document.getElementById('memoFontRow');
+  const memoFontSlider = document.getElementById('memoFontSlider');
+
+  const memoModalBackdrop = document.getElementById('memoModalBackdrop');
+  const memoModalTitle = document.getElementById('memoModalTitle');
+  const memoTextarea = document.getElementById('memoTextarea');
+  const memoSaveBtn = document.getElementById('memoSaveBtn');
+  const memoCancelBtn = document.getElementById('memoCancelBtn');
+
+  const editModeBtn = document.getElementById('editModeBtn');
+  const downloadBar = document.getElementById('downloadBar');
+  const downloadLink = document.getElementById('downloadLink');
+  const discardBtn = document.getElementById('discardBtn');
+  const infoBtn = document.getElementById('infoBtn');
+
+  let stream = null;
+  let facingMode = 'user';
+  let mediaRecorder = null;
+  let chunks = [];
+  let recording = false;
+  let timerInterval = null;
+  let startTime = 0;
+  let hasImage = false;
+  let hasMemo = false;
+  let manualShow = false;
+  let recordedUrl = null;
+
+  async function startCamera(){
+    stopCamera();
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio:true,
+        video:{ facingMode: facingMode, width:{ideal:1080}, height:{ideal:1920} }
+      });
+      video.srcObject = stream;
+      placeholder.style.display = 'none';
+      video.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
+    }catch(err){
+      placeholder.style.display = 'flex';
+      placeholder.querySelector('div').textContent = 'カメラを起動できませんでした: ' + err.message;
+    }
+  }
+  function stopCamera(){
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+  }
+  startCamBtn.addEventListener('click', startCamera);
+  switchCamBtn.addEventListener('click', ()=>{
+    if(recording) return;
+    facingMode = (facingMode === 'user') ? 'environment' : 'user';
+    startCamera();
+  });
+
+  function updateVisibility(){
+    overlayWrap.classList.toggle('visible', hasImage && (recording || manualShow));
+    memoWrap.classList.toggle('visible', hasMemo && (recording || manualShow));
+  }
+  function setEditingAll(on){
+    overlayWrap.classList.toggle('editing', !!on && hasImage);
+    memoWrap.classList.toggle('editing', !!on && hasMemo);
+  }
+
+  editModeBtn.addEventListener('click', ()=>{
+    manualShow = !manualShow;
+    editModeBtn.classList.toggle('active', manualShow);
+    editModeBtn.textContent = manualShow ? '位置調整：オン' : '位置調整：オフ';
+    setEditingAll(manualShow);
+    updateVisibility();
+  });
+
+  lyricsBtn.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const url = URL.createObjectURL(file);
+    overlayImg.src = url;
+    hasImage = true;
+    lyricsBtn.textContent = '🖼️ 画像を変更';
+    opacityRow.style.display = 'flex';
+    manualShow = true;
+    editModeBtn.classList.add('active');
+    editModeBtn.textContent = '位置調整：オン';
+    setEditingAll(true);
+    updateVisibility();
+    fileInput.value = '';
+  });
+  opacitySlider.addEventListener('input', ()=>{
+    overlayImg.style.opacity = (opacitySlider.value/100).toFixed(2);
+  });
+  overlayImg.style.opacity = '0.9';
+
+  function openMemoModal(){
+    memoModalTitle.textContent = hasMemo ? 'メモを編集' : 'メモを追加';
+    memoTextarea.value = hasMemo ? memoText.textContent : '';
+    memoModalBackdrop.classList.add('show');
+    setTimeout(()=>memoTextarea.focus(), 50);
+  }
+  memoBtn.addEventListener('click', openMemoModal);
+  memoCancelBtn.addEventListener('click', ()=>{
+    memoModalBackdrop.classList.remove('show');
+  });
+  memoSaveBtn.addEventListener('click', ()=>{
+    const val = memoTextarea.value.trim();
+    memoModalBackdrop.classList.remove('show');
+    if(!val) return;
+    memoText.textContent = val;
+    hasMemo = true;
+    memoBtn.textContent = '📝 メモを編集';
+    memoOpacityRow.style.display = 'flex';
+    memoFontRow.style.display = 'flex';
+    manualShow = true;
+    editModeBtn.classList.add('active');
+    editModeBtn.textContent = '位置調整：オン';
+    setEditingAll(true);
+    updateVisibility();
+  });
+  memoOpacitySlider.addEventListener('input', ()=>{
+    memoText.style.background = 'rgba(0,0,0,' + (memoOpacitySlider.value/100).toFixed(2) + ')';
+  });
+  memoFontSlider.addEventListener('input', ()=>{
+    memoText.style.fontSize = memoFontSlider.value + 'px';
+  });
+  memoText.style.fontSize = memoFontSlider.value + 'px';
+
+  function getStageRect(){
+    return document.getElementById('stage').getBoundingClientRect();
+  }
+
+  function attachDrag(wrapEl){
+    let dragging = false, startX=0, startY=0, startLeft=0, startTop=0;
+    function down(e){
+      if(!wrapEl.classList.contains('editing')) return;
+      e.preventDefault();
+      const p = e.touches ? e.touches[0] : e;
+      const rect = wrapEl.getBoundingClientRect();
+      const stageRect = getStageRect();
+      dragging = true;
+      startX = p.clientX; startY = p.clientY;
+      startLeft = rect.left - stageRect.left;
+      startTop = rect.top - stageRect.top;
+    }
+    function move(e){
+      if(!dragging) return;
+      e.preventDefault();
+      const p = e.touches ? e.touches[0] : e;
+      const dx = p.clientX - startX;
+      const dy = p.clientY - startY;
+      wrapEl.style.left = (startLeft + dx) + 'px';
+      wrapEl.style.top = (startTop + dy) + 'px';
+      wrapEl.style.transform = 'none';
+    }
+    function up(){ dragging = false; }
+    wrapEl.addEventListener('mousedown', down);
+    wrapEl.addEventListener('touchstart', down, {passive:false});
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchmove', move, {passive:false});
+    window.addEventListener('mouseup', up);
+    window.addEventListener('touchend', up);
+  }
+
+  function attachResizeWidth(wrapEl, handleEl){
+    let resizing = false, startX = 0, startWidth = 0;
+    function down(e){
+      if(!wrapEl.classList.contains('editing')) return;
+      e.stopPropagation(); e.preventDefault();
+      const p = e.touches ? e.touches[0] : e;
+      resizing = true;
+      startX = p.clientX;
+      startWidth = wrapEl.getBoundingClientRect().width;
+    }
+    function move(e){
+      if(!resizing) return;
+      e.preventDefault();
+      const p = e.touches ? e.touches[0] : e;
+      const dx = p.clientX - startX;
+      const stageRect = getStageRect();
+      let newWidth = Math.max(80, startWidth + dx);
+      newWidth = Math.min(newWidth, stageRect.width * 1.5);
+      wrapEl.style.width = newWidth + 'px';
+    }
+    function up(){ resizing = false; }
+    handleEl.addEventListener('mousedown', down);
+    handleEl.addEventListener('touchstart', down, {passive:false});
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchmove', move, {passive:false});
+    window.addEventListener('mouseup', up);
+    window.addEventListener('touchend', up);
+  }
+
+  function attachResizeFont(handleEl, textEl){
+    let resizing = false, startX = 0, startSize = 0;
+    function down(e){
+      if(!memoWrap.classList.contains('editing')) return;
+      e.stopPropagation(); e.preventDefault();
+      const p = e.touches ? e.touches[0] : e;
+      resizing = true;
+      startX = p.clientX;
+      startSize = parseFloat(getComputedStyle(textEl).fontSize);
+    }
+    function move(e){
+      if(!resizing) return;
+      e.preventDefault();
+      const p = e.touches ? e.touches[0] : e;
+      const dx = p.clientX - startX;
+      let newSize = Math.max(12, Math.min(72, startSize + dx * 0.2));
+      textEl.style.fontSize = newSize + 'px';
+      memoFontSlider.value = Math.round(newSize);
+    }
+    function up(){ resizing = false; }
+    handleEl.addEventListener('mousedown', down);
+    handleEl.addEventListener('touchstart', down, {passive:false});
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchmove', move, {passive:false});
+    window.addEventListener('mouseup', up);
+    window.addEventListener('touchend', up);
+  }
+
+  attachDrag(overlayWrap);
+  attachResizeWidth(overlayWrap, imgResizeHandle);
+  attachDrag(memoWrap);
+  attachResizeFont(memoResizeHandle, memoText);
+
+  function pickMimeType(){
+    const candidates = [
+      'video/mp4;codecs=h264,aac',
+      'video/mp4',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm'
+    ];
+    for(const c of candidates){
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)){
+        return c;
+      }
+    }
+    return '';
+  }
+
+  recordBtn.addEventListener('click', ()=>{
+    if(!stream){ alert('先にカメラを起動してください'); return; }
+    if(!recording){ startRecording(); } else { stopRecording(); }
+  });
+
+  function startRecording(){
+    chunks = [];
+    const mimeType = pickMimeType();
+    try{
+      mediaRecorder = mimeType ? new MediaRecorder(stream, {mimeType}) : new MediaRecorder(stream);
+    }catch(err){
+      mediaRecorder = new MediaRecorder(stream);
+    }
+    mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+    mediaRecorder.onstop = onRecordingStop;
+    mediaRecorder.start();
+    recording = true;
+    recordBtn.classList.add('recording');
+    recTimer.classList.add('show');
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 250);
+    updateVisibility();
+    switchCamBtn.style.visibility = 'hidden';
+  }
+
+  function stopRecording(){
+    if(mediaRecorder && mediaRecorder.state !== 'inactive'){ mediaRecorder.stop(); }
+    recording = false;
+    recordBtn.classList.remove('recording');
+    recTimer.classList.remove('show');
+    clearInterval(timerInterval);
+    switchCamBtn.style.visibility = 'visible';
+    updateVisibility();
+  }
+
+  function updateTimer(){
+    const elapsed = Math.floor((Date.now()-startTime)/1000);
+    const m = String(Math.floor(elapsed/60)).padStart(2,'0');
+    const s = String(elapsed%60).padStart(2,'0');
+    recTimeText.textContent = m+':'+s;
+  }
+
+  function onRecordingStop(){
+    const mimeType = mediaRecorder.mimeType || 'video/webm';
+    const blob = new Blob(chunks, {type:mimeType});
+    if(recordedUrl) URL.revokeObjectURL(recordedUrl);
+    recordedUrl = URL.createObjectURL(blob);
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+    downloadLink.href = recordedUrl;
+    downloadLink.download = 'movie.' + ext;
+    downloadBar.classList.add('show');
+  }
+
+  discardBtn.addEventListener('click', ()=>{
+    downloadBar.classList.remove('show');
+    if(recordedUrl){ URL.revokeObjectURL(recordedUrl); recordedUrl = null; }
+    chunks = [];
+  });
+
+  infoBtn.addEventListener('click', ()=>{
+    alert('使い方\n1. カメラを起動\n2. 画像を選ぶ／メモを追加（位置・大きさ・濃さを調整できます）\n3. 赤いボタンで撮影開始 → 画面にだけ表示され、録画には映りません\n4. 撮影中でも画像の変更やメモの編集ができます\n5. もう一度押して撮影終了 → 動画を保存できます');
+  });
+
+  window.addEventListener('load', ()=>{ startCamera(); });
+  window.addEventListener('beforeunload', (e)=>{
+    if(downloadBar.classList.contains('show')){ e.preventDefault(); e.returnValue=''; }
+  });
+})();
+</script>
+</body>
+</html>
