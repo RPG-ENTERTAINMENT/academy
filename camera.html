@@ -381,15 +381,15 @@
       </div>
       <div class="row" id="skinRow" style="display:none;">
         <label>肌の滑らかさ</label>
-        <input type="range" id="skinSlider" min="0" max="100" value="10">
+        <input type="range" id="skinSlider" min="0" max="100" value="15">
       </div>
       <div class="row" id="eyeRow" style="display:none;">
         <label>目の大きさ</label>
-        <input type="range" id="eyeSlider" min="-100" max="100" value="-20">
+        <input type="range" id="eyeSlider" min="-100" max="100" value="-15">
       </div>
       <div class="row" id="noseRow" style="display:none;">
         <label>鼻の大きさ</label>
-        <input type="range" id="noseSlider" min="-100" max="100" value="-5">
+        <input type="range" id="noseSlider" min="-100" max="100" value="15">
       </div>
       <div class="row" id="memoColorRow" style="display:none;">
         <label>文字の色</label>
@@ -523,7 +523,7 @@
   let memoScale = 1;
 
   let beautyEnabled = false;
-  let skinStrengthVal = 10, eyeStrengthVal = -20, noseStrengthVal = -5;
+  let skinStrengthVal = 15, eyeStrengthVal = -15, noseStrengthVal = 15;
   let faceLandmarker = null;
   let faceLandmarkerLoading = false;
   let cropSx = 0, cropSy = 0, cropSw = 0, cropSh = 0;
