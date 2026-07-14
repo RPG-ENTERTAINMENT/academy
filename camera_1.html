@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>歌詞カメラ</title>
+<style>
+  :root{
+    --bg:#0b0c0e;
+    --panel:#15171a;
+    --line:#2a2d31;
+    --accent:#ff5470;
+    --text:#eef0f2;
+    --sub:#9aa0a6;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; padding:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+    overscroll-behavior:none;
+  }
+  #app{
+    position:fixed; inset:0;
+    display:flex; flex-direction:column;
+    height:100%;
+    height:100dvh;
+  }
+
+  #stage{
+    position:relative;
+    flex:1;
+    background:#000;
+    overflow:hidden;
+    touch-action:none;
+  }
+  #video{
+    position:absolute; width:2px; height:2px; opacity:0;
+    pointer-events:none; top:0; left:0;
+  }
+  #outputCanvas{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:contain;
+    background:#000;
+  }
+  #placeholder{
+    position:absolute; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    flex-direction:column; gap:12px;
+    color:var(--sub); text-align:center; padding:24px;
+  }
+  #placeholder button{
+    background:var(--accent); color:#fff; border:none; border-radius:999px;
+    padding:14px 28px; font-size:15px; font-weight:600;
+  }
+
+  .layerWrap{
+    position:absolute;
+    display:none;
+    touch-action:none;
+    user-select:none;
+    -webkit-user-select:none;
+    z-index:4;
+  }
+  .layerWrap.visible{ display:block; }
+  .layerFrame{
+    position:absolute; inset:-8px;
+    border:2px dashed rgba(255,255,255,0.55);
+    border-radius:10px;
+    display:none;
+    pointer-events:none;
+  }
+  .layerWrap.editing .layerFrame{ display:block; }
+
+  .handleBtn{
+    position:absolute;
+    width:34px; height:34px; border-radius:50%;
+    display:none;
+    align-items:center; justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    touch-action:none;
+  }
+  .layerWrap.editing .handleBtn{ display:flex; }
+  .handleBtn svg{ width:16px; height:16px; fill:#fff; }
+  .resizeHandleBtn{ right:-16px; bottom:-16px; background:var(--accent); }
+
+  #overlayWrap{ top:16%; left:50%; transform:translate(-50%,0); width:68%; }
+  #overlayViewport{
+    width:100%; height:240px; max-height:65vh;
+    overflow:hidden; position:relative;
+    border-radius:6px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.5);
+  }
+  #overlayImg{
+    width:100%; height:auto; display:block;
+    pointer-events:none;
+    position:relative;
+  }
+
+  #memoWrap{ top:60%; left:50%; transform:translate(-50%,0); }
+  #memoViewport{
+    width:min(75vw, 380px);
+    height:130px;
+    max-height:65vh;
+    overflow:hidden;
+    position:relative;
+    background:rgba(0,0,0,0.55);
+    border-radius:10px;
+    padding:10px 14px;
+    box-shadow:0 4px 24px rgba(0,0,0,0.4);
+  }
+  #memoText{
+    white-space:pre-wrap;
+    word-break:break-word;
+    color:#fff;
+    font-size:28px;
+    font-weight:700;
+    line-height:1.4;
+    pointer-events:none;
+    position:relative;
+  }
+
+  .sideControls{
+    position:absolute; left:-46px; top:50%; transform:translateY(-50%);
+    display:none; flex-direction:column; gap:8px; align-items:center;
+  }
+  .layerWrap.visible .sideControls{ display:flex; }
+  .stackBtn{
+    position:static;
+    width:34px; height:34px; border-radius:50%;
+    background:#3d4147; border:none; color:#fff; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
+    touch-action:none;
+    font-size:18px; font-weight:700; line-height:1;
+  }
+  .stackBtn.active{ background:var(--accent); }
+  .stackBtn svg{ width:16px; height:16px; fill:#fff; }
+
+
+  #topBar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 10px;
+    background:linear-gradient(rgba(0,0,0,0.55), transparent);
+    z-index:5;
+  }
+  #recTimer{
+    background:rgba(0,0,0,0.5);
+    padding:6px 12px; border-radius:999px;
+    font-size:13px; font-weight:600; letter-spacing:0.3px;
+    display:none; align-items:center; gap:6px;
+  }
+  #recTimer.show{ display:inline-flex; }
+  #recDot{
+    width:8px; height:8px; border-radius:50%; background:var(--accent);
+    animation:blink 1s infinite;
+  }
+  @keyframes blink{ 50%{opacity:0.2;} }
+
+  .iconBtn{
+    background:rgba(0,0,0,0.5);
+    border:none; color:#fff; border-radius:999px;
+    width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+  }
+
+  #controls{
+    background:var(--panel);
+    border-top:1px solid var(--line);
+    padding:10px 104px calc(env(safe-area-inset-bottom,0px) + 10px) 12px;
+    display:flex; flex-direction:column; gap:6px;
+    position:relative;
+    transition:max-height .25s ease, padding .25s ease;
+  }
+  #controls.compact #slidersGrid{
+    display:none;
+  }
+
+  #slidersGrid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:2px 12px;
+  }
+  .row{ display:flex; flex-direction:column; align-items:stretch; gap:0; }
+  .row label{ font-size:10px; color:var(--sub); }
+  input[type=range]{ width:100%; accent-color:var(--accent); margin:2px 0; }
+  #memoColorRow{ grid-column:1 / -1; }
+
+  #memoColorSwatches{ display:flex; gap:6px; flex-wrap:wrap; }
+  .colorSwatch{
+    width:22px; height:22px; border-radius:50%;
+    border:2px solid rgba(255,255,255,0.25);
+    padding:0; flex-shrink:0;
+  }
+  .colorSwatch.selected{ border-color:var(--accent); border-width:3px; }
+
+  #layerBtnRow, #layerBtnRow2, #fxBtnRow{ display:flex; gap:6px; }
+  #layerBtnRow button, #layerBtnRow2 button, #fxBtnRow button{
+    flex:1;
+    background:#1f2226; color:var(--text);
+    border:1px solid var(--line); border-radius:10px;
+    padding:9px 4px; font-size:12px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:4px;
+  }
+
+  #fxBtnRow #beautyBtn{ color:var(--sub); }
+  #beautyBtn.active{ color:var(--accent) !important; border-color:var(--accent); }
+  #beautyStatus{
+    font-size:10px; color:var(--sub); text-align:center;
+  }
+  #beautyStatus:empty{ display:none; }
+
+  #mainRow{
+    position:absolute;
+    right:14px;
+    top:50%;
+    transform:translateY(-50%);
+    display:flex; flex-direction:column; align-items:center;
+    gap:8px;
+  }
+  #switchCamBtn{
+    background:#1f2226; border:1px solid var(--line);
+    color:var(--text); width:40px; height:40px; border-radius:50%;
+    font-size:16px;
+  }
+  #recordBtn{
+    width:68px; height:68px; border-radius:50%;
+    border:4px solid #fff;
+    background:transparent;
+    position:relative;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #recordBtn::after{
+    content:"";
+    width:52px; height:52px; border-radius:50%;
+    background:var(--accent);
+    transition:all .15s ease;
+  }
+  #recordBtn.recording::after{
+    width:26px; height:26px; border-radius:8px;
+  }
+
+  #downloadBar{ display:none; gap:10px; }
+  #downloadBar.show{ display:flex; }
+  #downloadBar a, #downloadBar button{
+    flex:1;
+    text-align:center;
+    padding:12px; border-radius:10px; font-size:14px; font-weight:600;
+    text-decoration:none;
+  }
+  #downloadLink{ background:var(--accent); color:#fff; }
+  #discardBtn{ background:#1f2226; color:var(--sub); border:1px solid var(--line); }
+
+  #fileInput{ display:none; }
+
+  #memoModalBackdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,0.6);
+    display:none; align-items:center; justify-content:center;
+    z-index:20; padding:24px;
+  }
+  #memoModalBackdrop.show{ display:flex; }
+  #memoModal{
+    background:var(--panel); border:1px solid var(--line);
+    border-radius:14px; padding:16px; width:100%; max-width:420px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  #memoModal h3{ margin:0; font-size:15px; }
+  #memoTextarea{
+    width:100%; min-height:110px; resize:vertical;
+    background:#0f1113; color:var(--text);
+    border:1px solid var(--line); border-radius:10px;
+    padding:10px; font-size:16px; line-height:1.5;
+    font-family:inherit;
+  }
+  #memoModalBtns{ display:flex; gap:10px; }
+  #memoModalBtns button{
+    flex:1; padding:11px; border-radius:10px; font-size:14px; font-weight:600; border:none;
+  }
+  #memoSaveBtn{ background:var(--accent); color:#fff; }
+  #memoCancelBtn{ background:#1f2226; color:var(--sub); border:1px solid var(--line); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="stage">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="outputCanvas"></canvas>
+
+    <div id="placeholder">
+      <div style="font-size:15px;">カメラへのアクセスを許可してください</div>
+      <button id="startCamBtn">カメラを起動</button>
+    </div>
+
+    <div id="overlayWrap" class="layerWrap">
+      <div id="overlayViewport">
+        <img id="overlayImg" src="" alt="lyrics">
+      </div>
+      <div class="layerFrame"></div>
+      <div class="handleBtn resizeHandleBtn" id="imgResizeHandle">
+        <svg viewBox="0 0 24 24"><path d="M22 22H16V20H20V16H22V22M2 22V16H4V20H8V22H2M22 2V8H20V4H16V2H22M2 2H8V4H4V8H2V2Z"/></svg>
+      </div>
+      <div class="sideControls">
+        <button type="button" class="stackBtn" id="imgRotateHandle">
+          <svg viewBox="0 0 24 24"><path d="M12 6V2L7 7l5 5V8c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+        </button>
+        <button type="button" class="stackBtn" id="imgScrollBtn">
+          <svg id="imgScrollIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button type="button" class="stackBtn" id="imgZoomInBtn">＋</button>
+        <button type="button" class="stackBtn" id="imgZoomOutBtn">－</button>
+      </div>
+    </div>
+
+    <div id="memoWrap" class="layerWrap">
+      <div id="memoViewport">
+        <div id="memoText"></div>
+      </div>
+      <div class="layerFrame"></div>
+      <div class="handleBtn resizeHandleBtn" id="memoResizeHandle">
+        <svg viewBox="0 0 24 24"><path d="M22 22H16V20H20V16H22V22M2 22V16H4V20H8V22H2M22 2V8H20V4H16V2H22M2 2H8V4H4V8H2V2Z"/></svg>
+      </div>
+      <div class="sideControls">
+        <button type="button" class="stackBtn" id="memoRotateHandle">
+          <svg viewBox="0 0 24 24"><path d="M12 6V2L7 7l5 5V8c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+        </button>
+        <button type="button" class="stackBtn" id="memoScrollBtn">
+          <svg id="memoScrollIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button type="button" class="stackBtn" id="memoZoomInBtn">＋</button>
+        <button type="button" class="stackBtn" id="memoZoomOutBtn">－</button>
+      </div>
+    </div>
+
+    <div id="topBar">
+      <div id="recTimer"><span id="recDot"></span><span id="recTimeText">00:00</span></div>
+      <button class="iconBtn" id="infoBtn">?</button>
+    </div>
+  </div>
+
+  <div id="controls">
+
+    <div id="layerBtnRow">
+      <button id="lyricsBtn">🖼️ 画像を選ぶ</button>
+      <button id="imgDeleteBtn" style="display:none;">🗑️ 画像を削除</button>
+    </div>
+    <div id="layerBtnRow2">
+      <button id="memoBtn">📝 メモを追加</button>
+      <button id="memoDeleteBtn" style="display:none;">🗑️ 文を削除</button>
+    </div>
+    <div id="fxBtnRow">
+      <button id="beautyBtn">✨ 美顔：オフ</button>
+    </div>
+    <div id="beautyStatus"></div>
+
+    <div id="slidersGrid">
+      <div class="row" id="opacityRow" style="display:none;">
+        <label>画像の濃さ</label>
+        <input type="range" id="opacitySlider" min="20" max="100" value="90">
+      </div>
+      <div class="row" id="imgScrollRow" style="display:none;">
+        <label>画像スクロール速度</label>
+        <input type="range" id="imgScrollSlider" min="5" max="120" value="5">
+      </div>
+      <div class="row" id="memoOpacityRow" style="display:none;">
+        <label>メモの濃さ</label>
+        <input type="range" id="memoOpacitySlider" min="20" max="100" value="55">
+      </div>
+      <div class="row" id="memoFontRow" style="display:none;">
+        <label>文字の大きさ</label>
+        <input type="range" id="memoFontSlider" min="14" max="60" value="28">
+      </div>
+      <div class="row" id="memoScrollRow" style="display:none;">
+        <label>スクロール速度</label>
+        <input type="range" id="memoScrollSlider" min="5" max="120" value="5">
+      </div>
+      <div class="row" id="skinRow" style="display:none;">
+        <label>肌の滑らかさ</label>
+        <input type="range" id="skinSlider" min="0" max="100" value="10">
+      </div>
+      <div class="row" id="eyeRow" style="display:none;">
+        <label>目の大きさ</label>
+        <input type="range" id="eyeSlider" min="-100" max="100" value="-20">
+      </div>
+      <div class="row" id="noseRow" style="display:none;">
+        <label>鼻の大きさ</label>
+        <input type="range" id="noseSlider" min="-100" max="100" value="-5">
+      </div>
+      <div class="row" id="memoColorRow" style="display:none;">
+        <label>文字の色</label>
+        <div id="memoColorSwatches">
+          <button type="button" class="colorSwatch selected" data-color="#ffffff" style="background:#ffffff"></button>
+          <button type="button" class="colorSwatch" data-color="#000000" style="background:#000000"></button>
+          <button type="button" class="colorSwatch" data-color="#ff3b30" style="background:#ff3b30"></button>
+          <button type="button" class="colorSwatch" data-color="#ff9500" style="background:#ff9500"></button>
+          <button type="button" class="colorSwatch" data-color="#ffcc00" style="background:#ffcc00"></button>
+          <button type="button" class="colorSwatch" data-color="#34c759" style="background:#34c759"></button>
+          <button type="button" class="colorSwatch" data-color="#00c7be" style="background:#00c7be"></button>
+          <button type="button" class="colorSwatch" data-color="#007aff" style="background:#007aff"></button>
+          <button type="button" class="colorSwatch" data-color="#5856d6" style="background:#5856d6"></button>
+          <button type="button" class="colorSwatch" data-color="#ff2d55" style="background:#ff2d55"></button>
+          <button type="button" class="colorSwatch" data-color="#a2845e" style="background:#a2845e"></button>
+          <button type="button" class="colorSwatch" data-color="#8e8e93" style="background:#8e8e93"></button>
+        </div>
+      </div>
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*">
+
+    <div id="mainRow">
+      <button id="recordBtn"></button>
+      <button id="switchCamBtn">🔄</button>
+    </div>
+
+    <div id="downloadBar">
+      <a id="downloadLink" href="#" download="movie.mp4">動画を保存</a>
+      <button id="discardBtn">削除してやり直す</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="memoModalBackdrop">
+  <div id="memoModal">
+    <h3 id="memoModalTitle">メモを追加</h3>
+    <textarea id="memoTextarea" placeholder="歌詞やメモを入力..."></textarea>
+    <div id="memoModalBtns">
+      <button id="memoCancelBtn">キャンセル</button>
+      <button id="memoSaveBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('outputCanvas');
+  const ctx = canvas.getContext('2d', {willReadFrequently:true});
+  const placeholder = document.getElementById('placeholder');
+  const startCamBtn = document.getElementById('startCamBtn');
+  const switchCamBtn = document.getElementById('switchCamBtn');
+  const recordBtn = document.getElementById('recordBtn');
+  const recTimer = document.getElementById('recTimer');
+  const recTimeText = document.getElementById('recTimeText');
+
+  const lyricsBtn = document.getElementById('lyricsBtn');
+  const imgDeleteBtn = document.getElementById('imgDeleteBtn');
+  const fileInput = document.getElementById('fileInput');
+  const overlayWrap = document.getElementById('overlayWrap');
+  const overlayImg = document.getElementById('overlayImg');
+  const overlayViewport = document.getElementById('overlayViewport');
+  const imgResizeHandle = document.getElementById('imgResizeHandle');
+  const imgRotateHandle = document.getElementById('imgRotateHandle');
+  const imgZoomInBtn = document.getElementById('imgZoomInBtn');
+  const imgZoomOutBtn = document.getElementById('imgZoomOutBtn');
+  const opacityRow = document.getElementById('opacityRow');
+  const opacitySlider = document.getElementById('opacitySlider');
+  const imgScrollRow = document.getElementById('imgScrollRow');
+  const imgScrollSlider = document.getElementById('imgScrollSlider');
+  const imgScrollBtn = document.getElementById('imgScrollBtn');
+  const imgScrollIcon = document.getElementById('imgScrollIcon');
+
+  const memoBtn = document.getElementById('memoBtn');
+  const memoDeleteBtn = document.getElementById('memoDeleteBtn');
+  const memoWrap = document.getElementById('memoWrap');
+  const memoText = document.getElementById('memoText');
+  const memoViewport = document.getElementById('memoViewport');
+  const memoResizeHandle = document.getElementById('memoResizeHandle');
+  const memoRotateHandle = document.getElementById('memoRotateHandle');
+  const memoOpacityRow = document.getElementById('memoOpacityRow');
+  const memoOpacitySlider = document.getElementById('memoOpacitySlider');
+  const memoFontRow = document.getElementById('memoFontRow');
+  const memoFontSlider = document.getElementById('memoFontSlider');
+  const memoScrollRow = document.getElementById('memoScrollRow');
+  const memoScrollSlider = document.getElementById('memoScrollSlider');
+  const memoColorRow = document.getElementById('memoColorRow');
+  const memoColorSwatches = document.querySelectorAll('.colorSwatch');
+  const memoScrollBtn = document.getElementById('memoScrollBtn');
+  const memoZoomInBtn = document.getElementById('memoZoomInBtn');
+  const memoZoomOutBtn = document.getElementById('memoZoomOutBtn');
+  const memoScrollIcon = document.getElementById('memoScrollIcon');
+
+  const memoModalBackdrop = document.getElementById('memoModalBackdrop');
+  const memoModalTitle = document.getElementById('memoModalTitle');
+  const memoTextarea = document.getElementById('memoTextarea');
+  const memoSaveBtn = document.getElementById('memoSaveBtn');
+  const memoCancelBtn = document.getElementById('memoCancelBtn');
+
+  const controlsEl = document.getElementById('controls');
+  const beautyBtn = document.getElementById('beautyBtn');
+  const beautyStatus = document.getElementById('beautyStatus');
+  const skinRow = document.getElementById('skinRow');
+  const skinSlider = document.getElementById('skinSlider');
+  const eyeRow = document.getElementById('eyeRow');
+  const eyeSlider = document.getElementById('eyeSlider');
+  const noseRow = document.getElementById('noseRow');
+  const noseSlider = document.getElementById('noseSlider');
+  const downloadBar = document.getElementById('downloadBar');
+  const downloadLink = document.getElementById('downloadLink');
+  const discardBtn = document.getElementById('discardBtn');
+  const infoBtn = document.getElementById('infoBtn');
+
+  let stream = null;
+  let facingMode = 'user';
+  let mediaRecorder = null;
+  let chunks = [];
+  let recording = false;
+  let manualCompact = false;
+  let timerInterval = null;
+  let startTime = 0;
+  let hasImage = false;
+  let hasMemo = false;
+  let manualShow = false;
+  let recordedUrl = null;
+  let imgRotation = 0;
+  let memoRotation = 0;
+  let imgScale = 1;
+  let memoScale = 1;
+
+  let beautyEnabled = false;
+  let skinStrengthVal = 10, eyeStrengthVal = -20, noseStrengthVal = -5;
+  let faceLandmarker = null;
+  let faceLandmarkerLoading = false;
+  let cropSx = 0, cropSy = 0, cropSw = 0, cropSh = 0;
+  let renderLoopStarted = false;
+
+  const FACE_OVAL = [10,338,297,332,284,251,389,356,454,323,361,288,397,365,379,378,400,377,152,148,176,149,150,136,172,58,132,93,234,127,162,21,54,103,67,109];
+  const LEFT_EYE_IDX = [33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246];
+  const RIGHT_EYE_IDX = [263,249,390,373,374,380,381,382,362,398,384,385,386,387,388,466];
+  const MOUTH_BOX_IDX = [61,291,0,17];
+
+  function isLandscapeNow(){
+    return window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+  }
+  function applyCanvasDimensions(){
+    if(recording) return; // don't resize while actively recording — keep the recorded clip's aspect ratio stable
+    if(!video.videoWidth || !video.videoHeight) return;
+    if(isLandscapeNow()){
+      canvas.width = 1280;   // 16:9
+      canvas.height = 720;
+    } else {
+      canvas.width = 720;    // 9:16
+      canvas.height = 1280;
+    }
+  }
+  function handleOrientationChange(){
+    applyCanvasDimensions();
+  }
+  const landscapeMql = window.matchMedia ? window.matchMedia('(orientation: landscape)') : null;
+  if(landscapeMql){
+    if(landscapeMql.addEventListener) landscapeMql.addEventListener('change', handleOrientationChange);
+    else if(landscapeMql.addListener) landscapeMql.addListener(handleOrientationChange);
+  }
+  window.addEventListener('resize', handleOrientationChange);
+  window.addEventListener('orientationchange', handleOrientationChange);
+
+  function drawVideoCover(){
+    const vw = video.videoWidth, vh = video.videoHeight;
+    if(!vw || !vh) return;
+    const cw = canvas.width, ch = canvas.height;
+    const videoRatio = vw / vh;
+    const canvasRatio = cw / ch;
+    let sx, sy, sw, sh;
+    if(videoRatio > canvasRatio){
+      sh = vh; sw = vh * canvasRatio; sx = (vw - sw) / 2; sy = 0;
+    } else {
+      sw = vw; sh = vw / canvasRatio; sx = 0; sy = (vh - sh) / 2;
+    }
+    cropSx = sx; cropSy = sy; cropSw = sw; cropSh = sh;
+    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, cw, ch);
+  }
+
+  async function startCamera(){
+    stopCamera();
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio:true,
+        video:{ facingMode: facingMode }
+      });
+      video.srcObject = stream;
+      placeholder.style.display = 'none';
+      canvas.style.transform = facingMode === 'user' ? 'scaleX(-1)' : 'scaleX(1)';
+      await new Promise((resolve)=>{
+        if(video.readyState >= 1 && video.videoWidth){ resolve(); }
+        else { video.onloadedmetadata = ()=>resolve(); }
+      });
+      applyCanvasDimensions();
+      startRenderLoop();
+    }catch(err){
+      placeholder.style.display = 'flex';
+      placeholder.querySelector('div').textContent = 'カメラを起動できませんでした: ' + err.message;
+    }
+  }
+  function stopCamera(){
+    if(stream){ stream.getTracks().forEach(t=>t.stop()); stream = null; }
+  }
+  startCamBtn.addEventListener('click', startCamera);
+  switchCamBtn.addEventListener('click', ()=>{
+    if(recording) return;
+    facingMode = (facingMode === 'user') ? 'environment' : 'user';
+    startCamera();
+  });
+
+  function updateVisibility(){
+    overlayWrap.classList.toggle('visible', hasImage && (recording || manualShow));
+    memoWrap.classList.toggle('visible', hasMemo && (recording || manualShow));
+  }
+  function setEditingAll(on){
+    overlayWrap.classList.toggle('editing', !!on && hasImage);
+    memoWrap.classList.toggle('editing', !!on && hasMemo);
+  }
+
+  lyricsBtn.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const url = URL.createObjectURL(file);
+    overlayImg.src = url;
+    hasImage = true;
+    lyricsBtn.textContent = '🖼️ 画像を変更';
+    imgDeleteBtn.style.display = 'flex';
+    opacityRow.style.display = 'flex';
+    imgScrollRow.style.display = 'flex';
+    resetImgScroll();
+    manualShow = true;
+    setEditingAll(true);
+    updateVisibility();
+    fileInput.value = '';
+  });
+  opacitySlider.addEventListener('input', ()=>{
+    overlayImg.style.opacity = (opacitySlider.value/100).toFixed(2);
+  });
+  overlayImg.style.opacity = '0.9';
+
+  imgDeleteBtn.addEventListener('click', ()=>{
+    hasImage = false;
+    if(imgScrolling){
+      imgScrolling = false;
+      imgScrollBtn.classList.remove('active');
+      imgScrollIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      if(imgScrollRAF){ cancelAnimationFrame(imgScrollRAF); imgScrollRAF = null; }
+    }
+    resetImgScroll();
+    overlayImg.src = '';
+    lyricsBtn.textContent = '🖼️ 画像を選ぶ';
+    imgDeleteBtn.style.display = 'none';
+    opacityRow.style.display = 'none';
+    imgScrollRow.style.display = 'none';
+    overlayWrap.classList.remove('editing');
+    updateVisibility();
+  });
+
+  function openMemoModal(){
+    memoModalTitle.textContent = hasMemo ? 'メモを編集' : 'メモを追加';
+    memoTextarea.value = hasMemo ? memoText.textContent : '';
+    memoModalBackdrop.classList.add('show');
+    setTimeout(()=>memoTextarea.focus(), 50);
+  }
+  memoBtn.addEventListener('click', openMemoModal);
+  memoCancelBtn.addEventListener('click', ()=>{
+    memoModalBackdrop.classList.remove('show');
+  });
+  memoSaveBtn.addEventListener('click', ()=>{
+    const val = memoTextarea.value.trim();
+    memoModalBackdrop.classList.remove('show');
+    if(!val) return;
+    memoText.textContent = val;
+    hasMemo = true;
+    memoBtn.textContent = '📝 メモを編集';
+    memoDeleteBtn.style.display = 'flex';
+    memoOpacityRow.style.display = 'flex';
+    memoFontRow.style.display = 'flex';
+    memoScrollRow.style.display = 'flex';
+    memoColorRow.style.display = 'flex';
+    updateMemoViewportHeight();
+    resetMemoScroll();
+    manualShow = true;
+    setEditingAll(true);
+    updateVisibility();
+  });
+  memoOpacitySlider.addEventListener('input', ()=>{
+    memoViewport.style.background = 'rgba(0,0,0,' + (memoOpacitySlider.value/100).toFixed(2) + ')';
+  });
+  memoFontSlider.addEventListener('input', ()=>{
+    memoText.style.fontSize = memoFontSlider.value + 'px';
+    updateMemoViewportHeight();
+  });
+  memoText.style.fontSize = memoFontSlider.value + 'px';
+
+  function updateMemoViewportHeight(){
+    const fontSize = parseFloat(memoFontSlider.value);
+    const lineHeight = fontSize * 1.4;
+    memoViewport.style.height = Math.round(lineHeight * 15) + 'px';
+  }
+  updateMemoViewportHeight();
+
+  // ---------- Memo auto-scroll (teleprompter) ----------
+  let memoScrolling = false;
+  let memoScrollOffset = 0;
+  let memoScrollSpeed = +memoScrollSlider.value;
+  let memoScrollRAF = null;
+  let memoScrollLastTs = null;
+
+  function resetMemoScroll(){
+    memoScrollOffset = 0;
+    memoText.style.transform = 'translateY(0px)';
+  }
+
+  function memoScrollTick(ts){
+    if(memoScrollLastTs === null) memoScrollLastTs = ts;
+    const dt = (ts - memoScrollLastTs) / 1000;
+    memoScrollLastTs = ts;
+    memoScrollOffset += memoScrollSpeed * dt;
+    const textH = memoText.scrollHeight;
+    const viewportH = memoViewport.clientHeight;
+    if(memoScrollOffset > textH){
+      memoScrollOffset = -viewportH;
+    }
+    memoText.style.transform = 'translateY(' + (-memoScrollOffset) + 'px)';
+    if(memoScrolling) memoScrollRAF = requestAnimationFrame(memoScrollTick);
+  }
+
+  memoScrollBtn.addEventListener('mousedown', (e)=>{ e.stopPropagation(); });
+  memoScrollBtn.addEventListener('touchstart', (e)=>{ e.stopPropagation(); }, {passive:true});
+  memoScrollBtn.addEventListener('click', ()=>{
+    if(!hasMemo) return;
+    memoScrolling = !memoScrolling;
+    memoScrollBtn.classList.toggle('active', memoScrolling);
+    memoScrollIcon.innerHTML = memoScrolling
+      ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>'
+      : '<path d="M8 5v14l11-7z"/>';
+    if(memoScrolling){
+      memoScrollLastTs = null;
+      memoScrollRAF = requestAnimationFrame(memoScrollTick);
+    } else if(memoScrollRAF){
+      cancelAnimationFrame(memoScrollRAF);
+      memoScrollRAF = null;
+    }
+  });
+  memoScrollSlider.addEventListener('input', ()=>{
+    memoScrollSpeed = +memoScrollSlider.value;
+  });
+
+  memoDeleteBtn.addEventListener('click', ()=>{
+    hasMemo = false;
+    if(memoScrolling){
+      memoScrolling = false;
+      memoScrollBtn.classList.remove('active');
+      memoScrollIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+      if(memoScrollRAF){ cancelAnimationFrame(memoScrollRAF); memoScrollRAF = null; }
+    }
+    resetMemoScroll();
+    memoText.textContent = '';
+    memoBtn.textContent = '📝 メモを追加';
+    memoDeleteBtn.style.display = 'none';
+    memoOpacityRow.style.display = 'none';
+    memoFontRow.style.display = 'none';
+    memoScrollRow.style.display = 'none';
+    memoColorRow.style.display = 'none';
+    memoWrap.classList.remove('editing');
+    updateVisibility();
+  });
+
+  // ---------- Image auto-scroll ----------
+  let imgScrolling = false;
+  let imgScrollOffset = 0;
+  let imgScrollSpeed = +imgScrollSlider.value;
+  let imgScrollRAF = null;
+  let imgScrollLastTs = null;
+
+  function resetImgScroll(){
+    imgScrollOffset = 0;
+    overlayImg.style.transform = 'translateY(0px)';
+  }
+
+  function imgScrollTick(ts){
+    if(imgScrollLastTs === null) imgScrollLastTs = ts;
+    const dt = (ts - imgScrollLastTs) / 1000;
+    imgScrollLastTs = ts;
+    imgScrollOffset += imgScrollSpeed * dt;
+    const contentH = overlayImg.scrollHeight || overlayImg.offsetHeight;
+    const viewportH = overlayViewport.clientHeight;
+    if(imgScrollOffset > contentH){
+      imgScrollOffset = -viewportH;
+    }
+    overlayImg.style.transform = 'translateY(' + (-imgScrollOffset) + 'px)';
+    if(imgScrolling) imgScrollRAF = requestAnimationFrame(imgScrollTick);
+  }
+
+  imgScrollBtn.addEventListener('mousedown', (e)=>{ e.stopPropagation(); });
+  imgScrollBtn.addEventListener('touchstart', (e)=>{ e.stopPropagation(); }, {passive:true});
+  imgScrollBtn.addEventListener('click', ()=>{
+    if(!hasImage) return;
+    imgScrolling = !imgScrolling;
+    imgScrollBtn.classList.toggle('active', imgScrolling);
+    imgScrollIcon.innerHTML = imgScrolling
+      ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>'
+      : '<path d="M8 5v14l11-7z"/>';
+    if(imgScrolling){
+      imgScrollLastTs = null;
+      imgScrollRAF = requestAnimationFrame(imgScrollTick);
+    } else if(imgScrollRAF){
+      cancelAnimationFrame(imgScrollRAF);
+      imgScrollRAF = null;
+    }
+  });
+  imgScrollSlider.addEventListener('input', ()=>{
+    imgScrollSpeed = +imgScrollSlider.value;
+  });
+
+  memoColorSwatches.forEach((btn)=>{
+    btn.addEventListener('click', ()=>{
+      memoText.style.color = btn.dataset.color;
+      memoColorSwatches.forEach(b=>b.classList.remove('selected'));
+      btn.classList.add('selected');
+    });
+  });
+
+  function adjustMemoScale(delta){
+    memoScale = Math.max(0.3, Math.min(4, memoScale + delta));
+    memoViewport.style.transform = 'rotate(' + memoRotation + 'deg) scale(' + memoScale + ')';
+  }
+  [memoZoomInBtn, memoZoomOutBtn].forEach((btn)=>{
+    btn.addEventListener('mousedown', (e)=>{ e.stopPropagation(); });
+    btn.addEventListener('touchstart', (e)=>{ e.stopPropagation(); }, {passive:true});
+  });
+  memoZoomInBtn.addEventListener('click', (e)=>{ e.stopPropagation(); adjustMemoScale(0.1); });
+  memoZoomOutBtn.addEventListener('click', (e)=>{ e.stopPropagation(); adjustMemoScale(-0.1); });
+
+  function adjustImgScale(delta){
+    imgScale = Math.max(0.3, Math.min(4, imgScale + delta));
+    overlayViewport.style.transform = 'rotate(' + imgRotation + 'deg) scale(' + imgScale + ')';
+  }
+  [imgZoomInBtn, imgZoomOutBtn].forEach((btn)=>{
+    btn.addEventListener('mousedown', (e)=>{ e.stopPropagation(); });
+    btn.addEventListener('touchstart', (e)=>{ e.stopPropagation(); }, {passive:true});
+  });
+  imgZoomInBtn.addEventListener('click', (e)=>{ e.stopPropagation(); adjustImgScale(0.1); });
+  imgZoomOutBtn.addEventListener('click', (e)=>{ e.stopPropagation(); adjustImgScale(-0.1); });
+
+  // ---------- Beauty (skin smooth / eye enlarge / nose narrow) ----------
+  beautyBtn.addEventListener('click', ()=>{
+    beautyEnabled = !beautyEnabled;
+    beautyBtn.classList.toggle('active', beautyEnabled);
+    beautyBtn.textContent = beautyEnabled ? '✨ 美顔：オン' : '✨ 美顔：オフ';
+    skinRow.style.display = beautyEnabled ? 'flex' : 'none';
+    eyeRow.style.display = beautyEnabled ? 'flex' : 'none';
+    noseRow.style.display = beautyEnabled ? 'flex' : 'none';
+    if(beautyEnabled) ensureFaceLandmarker();
+  });
+  skinSlider.addEventListener('input', ()=>{ skinStrengthVal = +skinSlider.value; });
+  eyeSlider.addEventListener('input', ()=>{ eyeStrengthVal = +eyeSlider.value; });
+  noseSlider.addEventListener('input', ()=>{ noseStrengthVal = +noseSlider.value; });
+
+  async function ensureFaceLandmarker(){
+    if(faceLandmarker || faceLandmarkerLoading) return;
+    faceLandmarkerLoading = true;
+    beautyStatus.textContent = '美顔モデルを読み込み中...';
+    const modelUrl = 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task';
+    const wasmUrl = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+    try{
+      const visionMod = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');
+      const { FaceLandmarker, FilesetResolver } = visionMod;
+      const fileset = await FilesetResolver.forVisionTasks(wasmUrl);
+      try{
+        faceLandmarker = await FaceLandmarker.createFromOptions(fileset, {
+          baseOptions:{ modelAssetPath: modelUrl, delegate:'GPU' },
+          runningMode:'VIDEO', numFaces:1
+        });
+      }catch(gpuErr){
+        faceLandmarker = await FaceLandmarker.createFromOptions(fileset, {
+          baseOptions:{ modelAssetPath: modelUrl, delegate:'CPU' },
+          runningMode:'VIDEO', numFaces:1
+        });
+      }
+      beautyStatus.textContent = '';
+    }catch(err){
+      console.error('FaceLandmarker load failed', err);
+      beautyStatus.textContent = '美顔モデルを読み込めませんでした（通信環境をご確認ください）';
+    }
+    faceLandmarkerLoading = false;
+  }
+
+
+  function landmarkPoint(landmarks, idx){
+    const vx = landmarks[idx].x * video.videoWidth;
+    const vy = landmarks[idx].y * video.videoHeight;
+    const scaleX = cropSw > 0 ? canvas.width / cropSw : 1;
+    const scaleY = cropSh > 0 ? canvas.height / cropSh : 1;
+    return { x: (vx - cropSx) * scaleX, y: (vy - cropSy) * scaleY };
+  }
+  function centerOf(landmarks, idxArr){
+    let sx=0, sy=0;
+    idxArr.forEach(i=>{ const p = landmarkPoint(landmarks,i); sx+=p.x; sy+=p.y; });
+    return { x: sx/idxArr.length, y: sy/idxArr.length };
+  }
+  function distPt(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+  function boundingBoxFromIndices(landmarks, idxArr, marginRatio){
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    idxArr.forEach(i=>{
+      const p = landmarkPoint(landmarks,i);
+      if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x;
+      if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y;
+    });
+    const w=maxX-minX, h=maxY-minY;
+    const mx=w*marginRatio, my=h*marginRatio;
+    return { x:minX-mx, y:minY-my, w:w+mx*2, h:h+my*2 };
+  }
+  function restoreSharpBox(box){
+    const cx = Math.max(0, Math.floor(box.x));
+    const cy = Math.max(0, Math.floor(box.y));
+    const cw2 = Math.min(Math.ceil(box.w), canvas.width-cx);
+    const ch2 = Math.min(Math.ceil(box.h), canvas.height-cy);
+    if(cw2<=0||ch2<=0 || cropSw<=0 || cropSh<=0) return;
+    const scaleX = cropSw / canvas.width, scaleY = cropSh / canvas.height;
+    const vx = cropSx + cx*scaleX;
+    const vy = cropSy + cy*scaleY;
+    const vw2 = cw2*scaleX;
+    const vh2 = ch2*scaleY;
+    ctx.drawImage(video, vx, vy, vw2, vh2, cx, cy, cw2, ch2);
+  }
+
+  function pinchPunch(cx, cy, radius, strength){
+    if(radius<=2) return;
+    const x0 = Math.max(0, Math.floor(cx-radius));
+    const y0 = Math.max(0, Math.floor(cy-radius));
+    const w = Math.min(Math.ceil(radius*2), canvas.width-x0);
+    const h = Math.min(Math.ceil(radius*2), canvas.height-y0);
+    if(w<=0||h<=0) return;
+    let src;
+    try{ src = ctx.getImageData(x0,y0,w,h); }catch(e){ return; }
+    const dst = ctx.createImageData(w,h);
+    const s = src.data, d = dst.data;
+    const rcx = cx-x0, rcy = cy-y0;
+    for(let j=0;j<h;j++){
+      for(let i=0;i<w;i++){
+        const dx=i-rcx, dy=j-rcy;
+        const distR = Math.sqrt(dx*dx+dy*dy);
+        let sx=i, sy=j;
+        if(distR<radius && distR>0){
+          const dd = distR/radius;
+          const t = Math.pow(Math.sin(Math.PI/2*dd), -strength);
+          sx = rcx+dx*t; sy = rcy+dy*t;
+        }
+        const ix = Math.min(w-1,Math.max(0,Math.round(sx)));
+        const iy = Math.min(h-1,Math.max(0,Math.round(sy)));
+        const si=(iy*w+ix)*4, di=(j*w+i)*4;
+        d[di]=s[si]; d[di+1]=s[si+1]; d[di+2]=s[si+2]; d[di+3]=s[si+3];
+      }
+    }
+    ctx.putImageData(dst, x0, y0);
+  }
+
+  function horizontalPinch(cx, cy, radiusX, radiusY, strength){
+    if(radiusX<=2 || radiusY<=2) return;
+    const x0 = Math.max(0, Math.floor(cx-radiusX));
+    const y0 = Math.max(0, Math.floor(cy-radiusY));
+    const w = Math.min(Math.ceil(radiusX*2), canvas.width-x0);
+    const h = Math.min(Math.ceil(radiusY*2), canvas.height-y0);
+    if(w<=0||h<=0) return;
+    let src;
+    try{ src = ctx.getImageData(x0,y0,w,h); }catch(e){ return; }
+    const dst = ctx.createImageData(w,h);
+    const s = src.data, d = dst.data;
+    const rcx = cx-x0, rcy = cy-y0;
+    for(let j=0;j<h;j++){
+      for(let i=0;i<w;i++){
+        const dx=i-rcx, dy=j-rcy;
+        const ed = Math.sqrt((dx/radiusX)*(dx/radiusX) + (dy/radiusY)*(dy/radiusY));
+        let sx=i;
+        if(ed<1 && ed>0){
+          const t = Math.pow(Math.sin(Math.PI/2*ed), -strength);
+          sx = rcx + dx*t;
+        }
+        const ix = Math.min(w-1,Math.max(0,Math.round(sx)));
+        const iy = j;
+        const si=(iy*w+ix)*4, di=(j*w+i)*4;
+        d[di]=s[si]; d[di+1]=s[si+1]; d[di+2]=s[si+2]; d[di+3]=s[si+3];
+      }
+    }
+    ctx.putImageData(dst, x0, y0);
+  }
+
+  function applySkinSmooth(landmarks, strength){
+    if(strength<=0) return;
+    const blurPx = 1 + (strength/100)*10;
+    ctx.save();
+    const path = new Path2D();
+    FACE_OVAL.forEach((idx,i)=>{
+      const p = landmarkPoint(landmarks, idx);
+      if(i===0) path.moveTo(p.x,p.y); else path.lineTo(p.x,p.y);
+    });
+    path.closePath();
+    ctx.clip(path);
+    ctx.filter = 'blur(' + blurPx + 'px)';
+    ctx.globalAlpha = 0.5 + (strength/100)*0.45;
+    ctx.drawImage(canvas, 0, 0);
+    ctx.filter = 'none';
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    restoreSharpBox(boundingBoxFromIndices(landmarks, LEFT_EYE_IDX, 0.4));
+    restoreSharpBox(boundingBoxFromIndices(landmarks, RIGHT_EYE_IDX, 0.4));
+    restoreSharpBox(boundingBoxFromIndices(landmarks, MOUTH_BOX_IDX, 0.5));
+  }
+
+  function applyEyeEnlarge(landmarks, sliderVal){
+    if(sliderVal === 0) return;
+    const s = (sliderVal/100) * 0.6;
+    const leftCenter = centerOf(landmarks, LEFT_EYE_IDX);
+    const leftWidth = distPt(landmarkPoint(landmarks,33), landmarkPoint(landmarks,133));
+    pinchPunch(leftCenter.x, leftCenter.y, leftWidth*1.5, s);
+    const rightCenter = centerOf(landmarks, RIGHT_EYE_IDX);
+    const rightWidth = distPt(landmarkPoint(landmarks,263), landmarkPoint(landmarks,362));
+    pinchPunch(rightCenter.x, rightCenter.y, rightWidth*1.5, s);
+  }
+
+  function ellipticalPinch(cx, cy, radiusX, radiusY, strength){
+    if(radiusX<=2 || radiusY<=2) return;
+    const x0 = Math.max(0, Math.floor(cx-radiusX));
+    const y0 = Math.max(0, Math.floor(cy-radiusY));
+    const w = Math.min(Math.ceil(radiusX*2), canvas.width-x0);
+    const h = Math.min(Math.ceil(radiusY*2), canvas.height-y0);
+    if(w<=0||h<=0) return;
+    let src;
+    try{ src = ctx.getImageData(x0,y0,w,h); }catch(e){ return; }
+    const dst = ctx.createImageData(w,h);
+    const s = src.data, d = dst.data;
+    const rcx = cx-x0, rcy = cy-y0;
+    for(let j=0;j<h;j++){
+      for(let i=0;i<w;i++){
+        const dx=i-rcx, dy=j-rcy;
+        const ed = Math.sqrt((dx/radiusX)*(dx/radiusX) + (dy/radiusY)*(dy/radiusY));
+        let sx=i, sy=j;
+        if(ed<1 && ed>0){
+          const t = Math.pow(Math.sin(Math.PI/2*ed), -strength);
+          sx = rcx + dx*t;
+          sy = rcy + dy*t;
+        }
+        const ix = Math.min(w-1,Math.max(0,Math.round(sx)));
+        const iy = Math.min(h-1,Math.max(0,Math.round(sy)));
+        const si=(iy*w+ix)*4, di=(j*w+i)*4;
+        d[di]=s[si]; d[di+1]=s[si+1]; d[di+2]=s[si+2]; d[di+3]=s[si+3];
+      }
+    }
+    ctx.putImageData(dst, x0, y0);
+  }
+
+  function applyNoseNarrow(landmarks, sliderVal){
+    if(sliderVal === 0) return;
+    const s = (sliderVal/100) * 0.55;
+    const tip = landmarkPoint(landmarks, 4);
+    const bridge = landmarkPoint(landmarks, 6);
+    const alaL = landmarkPoint(landmarks, 129);
+    const alaR = landmarkPoint(landmarks, 358);
+    const cx = (alaL.x+alaR.x)/2;
+    const cy = (tip.y+bridge.y)/2;
+    const radiusX = Math.max(20, distPt(alaL,alaR) * 1.1);
+    const radiusY = Math.max(radiusX*1.1, distPt(tip,bridge)*1.6);
+    ellipticalPinch(cx, cy, radiusX, radiusY, s);
+  }
+
+  function startRenderLoop(){
+    if(renderLoopStarted) return;
+    renderLoopStarted = true;
+    requestAnimationFrame(renderTick);
+  }
+  function renderTick(nowTs){
+    if(video.readyState >= 2 && canvas.width > 0){
+      ctx.filter = 'none'; ctx.globalAlpha = 1;
+      drawVideoCover();
+      if(beautyEnabled && faceLandmarker){
+        try{
+          const result = faceLandmarker.detectForVideo(video, nowTs);
+          if(result && result.faceLandmarks && result.faceLandmarks.length){
+            const lm = result.faceLandmarks[0];
+            applySkinSmooth(lm, skinStrengthVal);
+            applyEyeEnlarge(lm, eyeStrengthVal);
+            applyNoseNarrow(lm, noseStrengthVal);
+          }
+        }catch(e){ /* skip this frame on error */ }
+      }
+    }
+    requestAnimationFrame(renderTick);
+  }
+
+  function getStageRect(){
+    return document.getElementById('stage').getBoundingClientRect();
+  }
+
+  function attachGestures(wrapEl, targetEl, getScale, setScale, getRotation, setRotation, onTap){
+    let mode = null; // 'drag' | 'pinch'
+    let startX=0, startY=0, startLeft=0, startTop=0;
+    let initialDist=0, initialAngle=0, initialScale=1, initialRotation=0;
+    let downX=0, downY=0, downTime=0, moved=false, pressing=false;
+
+    function touchDist(t1,t2){ return Math.hypot(t2.clientX-t1.clientX, t2.clientY-t1.clientY); }
+    function touchAngle(t1,t2){ return Math.atan2(t2.clientY-t1.clientY, t2.clientX-t1.clientX) * 180/Math.PI; }
+
+    function beginDrag(p){
+      pressing = true; moved = false;
+      downX = p.clientX; downY = p.clientY; downTime = Date.now();
+      mode = 'drag';
+      if(!wrapEl.classList.contains('editing')) return;
+      const rect = wrapEl.getBoundingClientRect();
+      const stageRect = getStageRect();
+      startX = p.clientX; startY = p.clientY;
+      startLeft = rect.left - stageRect.left;
+      startTop = rect.top - stageRect.top;
+    }
+    function beginPinch(t1, t2){
+      mode = 'pinch';
+      pressing = false;
+      initialDist = touchDist(t1,t2);
+      initialAngle = touchAngle(t1,t2);
+      initialScale = getScale();
+      initialRotation = getRotation();
+    }
+
+    function down(e){
+      if(e.touches && e.touches.length >= 2){
+        e.preventDefault();
+        beginPinch(e.touches[0], e.touches[1]);
+      } else {
+        const p = e.touches ? e.touches[0] : e;
+        beginDrag(p);
+      }
+    }
+    function move(e){
+      if(mode === 'pinch' && e.touches && e.touches.length >= 2){
+        e.preventDefault();
+        const t1 = e.touches[0], t2 = e.touches[1];
+        const newDist = touchDist(t1,t2);
+        const newAngle = touchAngle(t1,t2);
+        const scale = Math.max(0.3, Math.min(4, initialScale * (newDist/Math.max(1,initialDist))));
+        let rotation = initialRotation + (newAngle - initialAngle);
+        rotation = Math.round(rotation / 5) * 5;
+        setScale(scale);
+        setRotation(rotation);
+        targetEl.style.transform = 'rotate(' + rotation + 'deg) scale(' + scale + ')';
+      } else if(mode === 'drag'){
+        const p = e.touches ? e.touches[0] : e;
+        const ddx = p.clientX - downX, ddy = p.clientY - downY;
+        if(Math.hypot(ddx, ddy) > 6) moved = true;
+        if(wrapEl.classList.contains('editing')){
+          e.preventDefault();
+          const dx = p.clientX - startX;
+          const dy = p.clientY - startY;
+          wrapEl.style.left = (startLeft + dx) + 'px';
+          wrapEl.style.top = (startTop + dy) + 'px';
+          wrapEl.style.transform = 'none';
+        }
+      }
+    }
+    function up(e){
+      if(mode === 'drag' && pressing && !moved){
+        const dt = Date.now() - downTime;
+        if(dt < 600 && onTap) onTap();
+      }
+      if(e.touches && e.touches.length === 1){
+        beginDrag(e.touches[0]);
+        pressing = false; moved = true;
+      } else if(!e.touches || e.touches.length === 0){
+        mode = null; pressing = false; moved = false;
+      }
+    }
+    wrapEl.addEventListener('mousedown', down);
+    wrapEl.addEventListener('touchstart', down, {passive:false});
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchmove', move, {passive:false});
+    window.addEventListener('mouseup', up);
+    window.addEventListener('touchend', up, {passive:false});
+  }
+
+  attachGestures(overlayWrap, overlayViewport, ()=>imgScale, (v)=>{imgScale=v;}, ()=>imgRotation, (v)=>{imgRotation=v;}, ()=>{ if(hasImage) overlayWrap.classList.toggle('editing'); });
+  attachGestures(memoWrap, memoViewport, ()=>memoScale, (v)=>{memoScale=v;}, ()=>memoRotation, (v)=>{memoRotation=v;}, ()=>{ if(hasMemo) memoWrap.classList.toggle('editing'); });
+
+  function attachHandleResize(handleEl, wrapEl, targetEl, getScale, setScale, getRotation){
+    let active = false, cx=0, cy=0, startDist=0, initialScale=1;
+    function down(e){
+      if(!wrapEl.classList.contains('editing')) return;
+      e.stopPropagation(); e.preventDefault();
+      const p = e.touches ? e.touches[0] : e;
+      const rect = wrapEl.getBoundingClientRect();
+      cx = rect.left + rect.width/2;
+      cy = rect.top + rect.height/2;
+      startDist = Math.max(1, Math.hypot(p.clientX-cx, p.clientY-cy));
+      initialScale = getScale();
+      active = true;
+    }
+    function move(e){
+      if(!active) return;
+      e.preventDefault();
+      const p = e.touches ? e.touches[0] : e;
+      const dist = Math.hypot(p.clientX-cx, p.clientY-cy);
+      const scale = Math.max(0.3, Math.min(4, initialScale * (dist/startDist)));
+      setScale(scale);
+      targetEl.style.transform = 'rotate(' + getRotation() + 'deg) scale(' + scale + ')';
+    }
+    function up(){ active = false; }
+    handleEl.addEventListener('mousedown', down);
+    handleEl.addEventListener('touchstart', down, {passive:false});
+    window.addEventListener('mousemove', move);
+    window.addEventListener('touchmove', move, {passive:false});
+    window.addEventListener('mouseup', up);
+    window.addEventListener('touchend', up);
+  }
+
+  function attachHandleRotate(handleEl, wrapEl, targetEl, getRotation, setRotation, getScale){
+    function stopProp(e){ e.stopPropagation(); }
+    function onClick(e){
+      e.stopPropagation();
+      const rotation = getRotation() + 90;
+      setRotation(rotation);
+      targetEl.style.transform = 'rotate(' + rotation + 'deg) scale(' + getScale() + ')';
+    }
+    handleEl.addEventListener('mousedown', stopProp);
+    handleEl.addEventListener('touchstart', stopProp, {passive:true});
+    handleEl.addEventListener('click', onClick);
+  }
+
+  attachHandleResize(imgResizeHandle, overlayWrap, overlayViewport, ()=>imgScale, (v)=>{imgScale=v;}, ()=>imgRotation);
+  attachHandleRotate(imgRotateHandle, overlayWrap, overlayViewport, ()=>imgRotation, (v)=>{imgRotation=v;}, ()=>imgScale);
+  attachHandleResize(memoResizeHandle, memoWrap, memoViewport, ()=>memoScale, (v)=>{memoScale=v;}, ()=>memoRotation);
+  attachHandleRotate(memoRotateHandle, memoWrap, memoViewport, ()=>memoRotation, (v)=>{memoRotation=v;}, ()=>memoScale);
+
+
+  function pickMimeType(){
+    const candidates = [
+      'video/mp4;codecs=h264,aac',
+      'video/mp4',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm'
+    ];
+    for(const c of candidates){
+      if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)){
+        return c;
+      }
+    }
+    return '';
+  }
+
+  recordBtn.addEventListener('click', ()=>{
+    if(!stream){ alert('先にカメラを起動してください'); return; }
+    if(!recording){ startRecording(); } else { stopRecording(); }
+  });
+
+  function startRecording(){
+    chunks = [];
+    applyCanvasDimensions();
+    const mimeType = pickMimeType();
+    const canvasStream = canvas.captureStream(30);
+    const audioTracks = stream ? stream.getAudioTracks() : [];
+    if(audioTracks.length) canvasStream.addTrack(audioTracks[0]);
+    try{
+      mediaRecorder = mimeType ? new MediaRecorder(canvasStream, {mimeType}) : new MediaRecorder(canvasStream);
+    }catch(err){
+      mediaRecorder = new MediaRecorder(canvasStream);
+    }
+    mediaRecorder.ondataavailable = (e)=>{ if(e.data && e.data.size>0) chunks.push(e.data); };
+    mediaRecorder.onstop = onRecordingStop;
+    mediaRecorder.start();
+    recording = true;
+    recordBtn.classList.add('recording');
+    recTimer.classList.add('show');
+    startTime = Date.now();
+    timerInterval = setInterval(updateTimer, 250);
+    updateVisibility();
+    switchCamBtn.style.visibility = 'hidden';
+    updateControlsCompact();
+  }
+
+  function stopRecording(){
+    if(mediaRecorder && mediaRecorder.state !== 'inactive'){ mediaRecorder.stop(); }
+    recording = false;
+    recordBtn.classList.remove('recording');
+    recTimer.classList.remove('show');
+    clearInterval(timerInterval);
+    switchCamBtn.style.visibility = 'visible';
+    updateControlsCompact();
+    updateVisibility();
+    applyCanvasDimensions();
+  }
+
+  function updateControlsCompact(){
+    controlsEl.classList.toggle('compact', recording || manualCompact);
+  }
+  canvas.addEventListener('click', ()=>{
+    manualCompact = !manualCompact;
+    updateControlsCompact();
+  });
+
+  function updateTimer(){
+    const elapsed = Math.floor((Date.now()-startTime)/1000);
+    const m = String(Math.floor(elapsed/60)).padStart(2,'0');
+    const s = String(elapsed%60).padStart(2,'0');
+    recTimeText.textContent = m+':'+s;
+  }
+
+  function onRecordingStop(){
+    const mimeType = mediaRecorder.mimeType || 'video/webm';
+    const blob = new Blob(chunks, {type:mimeType});
+    if(recordedUrl) URL.revokeObjectURL(recordedUrl);
+    recordedUrl = URL.createObjectURL(blob);
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+    downloadLink.href = recordedUrl;
+    downloadLink.download = 'movie.' + ext;
+    downloadBar.classList.add('show');
+  }
+
+  discardBtn.addEventListener('click', ()=>{
+    downloadBar.classList.remove('show');
+    if(recordedUrl){ URL.revokeObjectURL(recordedUrl); recordedUrl = null; }
+    chunks = [];
+  });
+
+  infoBtn.addEventListener('click', ()=>{
+    alert('使い方\n1. カメラを起動\n2. 画像を選ぶ／メモを追加（左側のボタンで回転・自動スクロール・拡大縮小ができます）\n3. カメラ画面をタップすると、細かい設定パネルを隠したり表示したりできます\n4. ✨美顔をオンにすると肌の滑らかさ・目の大きさ（小さくも可）・鼻の大きさ（小さくも可）を調整できます（初回オンにした時に美顔モデルを読み込みます）\n5. 赤いボタンで撮影開始 → 画面にだけ表示され、録画には映りません\n6. 撮影中でも画像の変更やメモの編集、自動スクロールの操作ができます\n7. もう一度押して撮影終了 → 動画を保存できます');
+  });
+
+  window.addEventListener('load', ()=>{ startCamera(); });
+  window.addEventListener('beforeunload', (e)=>{
+    if(downloadBar.classList.contains('show')){ e.preventDefault(); e.returnValue=''; }
+  });
+})();
+</script>
+</body>
+</html>
