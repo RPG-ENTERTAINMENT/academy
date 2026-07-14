@@ -168,93 +168,64 @@
   #controls{
     background:var(--panel);
     border-top:1px solid var(--line);
-    padding:12px 16px calc(env(safe-area-inset-bottom,0px) + 12px);
-    display:flex; flex-direction:column; gap:10px;
-    max-height:46vh;
-    overflow-y:auto;
+    padding:10px 104px calc(env(safe-area-inset-bottom,0px) + 10px) 12px;
+    display:flex; flex-direction:column; gap:6px;
+    position:relative;
     transition:max-height .25s ease, padding .25s ease;
   }
-  #controls.compact{
-    max-height:20vh;
-    padding-top:8px;
-    padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
-    position:relative;
-    padding-right:104px; /* space for the record button on the right */
-  }
-  #controls.compact #mainRow{
-    position:absolute;
-    right:16px;
-    top:50%;
-    transform:translateY(-50%);
-    margin-top:0;
-    gap:0;
-  }
-  #controls.compact #switchCamBtn,
-  #controls.compact #spacer46{
-    display:none;
-  }
-  #controls.compact #layerBtnRow button,
-  #controls.compact #layerBtnRow2 button,
-  #controls.compact #beautyBtn,
-  #controls.compact #bgBlurBtn{
-    padding:9px 6px;
-    font-size:12px;
-  }
-  #controls.compact #opacityRow,
-  #controls.compact #imgScrollRow,
-  #controls.compact #memoOpacityRow,
-  #controls.compact #memoFontRow,
-  #controls.compact #memoScrollRow,
-  #controls.compact #memoColorRow,
-  #controls.compact #skinRow,
-  #controls.compact #eyeRow,
-  #controls.compact #noseRow{
+  #controls.compact #slidersGrid{
     display:none;
   }
 
-  .row{ display:flex; align-items:center; gap:10px; }
-  .row label{ font-size:12px; color:var(--sub); width:64px; flex-shrink:0; }
-  input[type=range]{ flex:1; accent-color:var(--accent); }
+  #slidersGrid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:2px 12px;
+  }
+  .row{ display:flex; flex-direction:column; align-items:stretch; gap:0; }
+  .row label{ font-size:10px; color:var(--sub); }
+  input[type=range]{ width:100%; accent-color:var(--accent); margin:2px 0; }
+  #memoColorRow{ grid-column:1 / -1; }
 
-  #memoColorSwatches{ display:flex; gap:8px; flex-wrap:wrap; flex:1; }
+  #memoColorSwatches{ display:flex; gap:6px; flex-wrap:wrap; }
   .colorSwatch{
-    width:26px; height:26px; border-radius:50%;
+    width:22px; height:22px; border-radius:50%;
     border:2px solid rgba(255,255,255,0.25);
     padding:0; flex-shrink:0;
   }
   .colorSwatch.selected{ border-color:var(--accent); border-width:3px; }
 
-  #layerBtnRow, #layerBtnRow2{ display:flex; gap:8px; }
-  #layerBtnRow button, #layerBtnRow2 button{
+  #layerBtnRow, #layerBtnRow2, #fxBtnRow{ display:flex; gap:6px; }
+  #layerBtnRow button, #layerBtnRow2 button, #fxBtnRow button{
     flex:1;
     background:#1f2226; color:var(--text);
     border:1px solid var(--line); border-radius:10px;
-    padding:11px 6px; font-size:13px; font-weight:600;
-    display:flex; align-items:center; justify-content:center; gap:6px;
+    padding:9px 4px; font-size:12px; font-weight:600;
+    display:flex; align-items:center; justify-content:center; gap:4px;
   }
 
-  #beautyBtn, #bgBlurBtn{
-    background:#1f2226; color:var(--sub);
-    border:1px solid var(--line); border-radius:10px;
-    padding:10px; font-size:13px; font-weight:600;
-  }
-  #beautyBtn.active, #bgBlurBtn.active{ color:var(--accent); border-color:var(--accent); }
+  #fxBtnRow #beautyBtn, #fxBtnRow #bgBlurBtn{ color:var(--sub); }
+  #beautyBtn.active, #bgBlurBtn.active{ color:var(--accent) !important; border-color:var(--accent); }
   #beautyStatus{
-    font-size:11px; color:var(--sub); text-align:center;
+    font-size:10px; color:var(--sub); text-align:center;
   }
+  #beautyStatus:empty{ display:none; }
 
   #mainRow{
-    display:flex; align-items:center; justify-content:center;
-    gap:36px;
-    margin-top:2px;
+    position:absolute;
+    right:14px;
+    top:50%;
+    transform:translateY(-50%);
+    display:flex; flex-direction:column; align-items:center;
+    gap:8px;
   }
   #switchCamBtn{
     background:#1f2226; border:1px solid var(--line);
-    color:var(--text); width:46px; height:46px; border-radius:50%;
-    font-size:18px;
+    color:var(--text); width:40px; height:40px; border-radius:50%;
+    font-size:16px;
   }
   #recordBtn{
-    width:72px; height:72px; border-radius:50%;
+    width:68px; height:68px; border-radius:50%;
     border:4px solid #fff;
     background:transparent;
     position:relative;
@@ -262,14 +233,13 @@
   }
   #recordBtn::after{
     content:"";
-    width:56px; height:56px; border-radius:50%;
+    width:52px; height:52px; border-radius:50%;
     background:var(--accent);
     transition:all .15s ease;
   }
   #recordBtn.recording::after{
-    width:28px; height:28px; border-radius:8px;
+    width:26px; height:26px; border-radius:8px;
   }
-  #spacer46{ width:46px; height:46px; }
 
   #downloadBar{ display:none; gap:10px; }
   #downloadBar.show{ display:flex; }
@@ -371,45 +341,6 @@
 
   <div id="controls">
 
-    <div class="row" id="opacityRow" style="display:none;">
-      <label>画像の濃さ</label>
-      <input type="range" id="opacitySlider" min="20" max="100" value="90">
-    </div>
-    <div class="row" id="imgScrollRow" style="display:none;">
-      <label>画像スクロール速度</label>
-      <input type="range" id="imgScrollSlider" min="5" max="120" value="5">
-    </div>
-
-    <div class="row" id="memoOpacityRow" style="display:none;">
-      <label>メモの濃さ</label>
-      <input type="range" id="memoOpacitySlider" min="20" max="100" value="55">
-    </div>
-    <div class="row" id="memoFontRow" style="display:none;">
-      <label>文字の大きさ</label>
-      <input type="range" id="memoFontSlider" min="14" max="60" value="28">
-    </div>
-    <div class="row" id="memoScrollRow" style="display:none;">
-      <label>スクロール速度</label>
-      <input type="range" id="memoScrollSlider" min="5" max="120" value="5">
-    </div>
-    <div class="row" id="memoColorRow" style="display:none;">
-      <label>文字の色</label>
-      <div id="memoColorSwatches">
-        <button type="button" class="colorSwatch selected" data-color="#ffffff" style="background:#ffffff"></button>
-        <button type="button" class="colorSwatch" data-color="#000000" style="background:#000000"></button>
-        <button type="button" class="colorSwatch" data-color="#ff3b30" style="background:#ff3b30"></button>
-        <button type="button" class="colorSwatch" data-color="#ff9500" style="background:#ff9500"></button>
-        <button type="button" class="colorSwatch" data-color="#ffcc00" style="background:#ffcc00"></button>
-        <button type="button" class="colorSwatch" data-color="#34c759" style="background:#34c759"></button>
-        <button type="button" class="colorSwatch" data-color="#00c7be" style="background:#00c7be"></button>
-        <button type="button" class="colorSwatch" data-color="#007aff" style="background:#007aff"></button>
-        <button type="button" class="colorSwatch" data-color="#5856d6" style="background:#5856d6"></button>
-        <button type="button" class="colorSwatch" data-color="#ff2d55" style="background:#ff2d55"></button>
-        <button type="button" class="colorSwatch" data-color="#a2845e" style="background:#a2845e"></button>
-        <button type="button" class="colorSwatch" data-color="#8e8e93" style="background:#8e8e93"></button>
-      </div>
-    </div>
-
     <div id="layerBtnRow">
       <button id="lyricsBtn">🖼️ 画像を選ぶ</button>
       <button id="imgDeleteBtn" style="display:none;">🗑️ 画像を削除</button>
@@ -418,31 +349,69 @@
       <button id="memoBtn">📝 メモを追加</button>
       <button id="memoDeleteBtn" style="display:none;">🗑️ 文を削除</button>
     </div>
-
-    <button id="beautyBtn">✨ 美顔：オフ</button>
-    <button id="bgBlurBtn">🌫️ 背景ぼかし：オフ</button>
+    <div id="fxBtnRow">
+      <button id="beautyBtn">✨ 美顔：オフ</button>
+      <button id="bgBlurBtn">🌫️ 背景ぼかし：オフ</button>
+    </div>
     <div id="beautyStatus"></div>
 
-    <div class="row" id="skinRow" style="display:none;">
-      <label>肌の滑らかさ</label>
-      <input type="range" id="skinSlider" min="0" max="100" value="40">
+    <div id="slidersGrid">
+      <div class="row" id="opacityRow" style="display:none;">
+        <label>画像の濃さ</label>
+        <input type="range" id="opacitySlider" min="20" max="100" value="90">
+      </div>
+      <div class="row" id="imgScrollRow" style="display:none;">
+        <label>画像スクロール速度</label>
+        <input type="range" id="imgScrollSlider" min="5" max="120" value="5">
+      </div>
+      <div class="row" id="memoOpacityRow" style="display:none;">
+        <label>メモの濃さ</label>
+        <input type="range" id="memoOpacitySlider" min="20" max="100" value="55">
+      </div>
+      <div class="row" id="memoFontRow" style="display:none;">
+        <label>文字の大きさ</label>
+        <input type="range" id="memoFontSlider" min="14" max="60" value="28">
+      </div>
+      <div class="row" id="memoScrollRow" style="display:none;">
+        <label>スクロール速度</label>
+        <input type="range" id="memoScrollSlider" min="5" max="120" value="5">
+      </div>
+      <div class="row" id="skinRow" style="display:none;">
+        <label>肌の滑らかさ</label>
+        <input type="range" id="skinSlider" min="0" max="100" value="40">
+      </div>
+      <div class="row" id="eyeRow" style="display:none;">
+        <label>目の大きさ</label>
+        <input type="range" id="eyeSlider" min="-100" max="100" value="15">
+      </div>
+      <div class="row" id="noseRow" style="display:none;">
+        <label>鼻の大きさ</label>
+        <input type="range" id="noseSlider" min="-100" max="100" value="-15">
+      </div>
+      <div class="row" id="memoColorRow" style="display:none;">
+        <label>文字の色</label>
+        <div id="memoColorSwatches">
+          <button type="button" class="colorSwatch selected" data-color="#ffffff" style="background:#ffffff"></button>
+          <button type="button" class="colorSwatch" data-color="#000000" style="background:#000000"></button>
+          <button type="button" class="colorSwatch" data-color="#ff3b30" style="background:#ff3b30"></button>
+          <button type="button" class="colorSwatch" data-color="#ff9500" style="background:#ff9500"></button>
+          <button type="button" class="colorSwatch" data-color="#ffcc00" style="background:#ffcc00"></button>
+          <button type="button" class="colorSwatch" data-color="#34c759" style="background:#34c759"></button>
+          <button type="button" class="colorSwatch" data-color="#00c7be" style="background:#00c7be"></button>
+          <button type="button" class="colorSwatch" data-color="#007aff" style="background:#007aff"></button>
+          <button type="button" class="colorSwatch" data-color="#5856d6" style="background:#5856d6"></button>
+          <button type="button" class="colorSwatch" data-color="#ff2d55" style="background:#ff2d55"></button>
+          <button type="button" class="colorSwatch" data-color="#a2845e" style="background:#a2845e"></button>
+          <button type="button" class="colorSwatch" data-color="#8e8e93" style="background:#8e8e93"></button>
+        </div>
+      </div>
     </div>
-    <div class="row" id="eyeRow" style="display:none;">
-      <label>目の大きさ</label>
-      <input type="range" id="eyeSlider" min="-100" max="100" value="15">
-    </div>
-    <div class="row" id="noseRow" style="display:none;">
-      <label>鼻の大きさ</label>
-      <input type="range" id="noseSlider" min="-100" max="100" value="-15">
-    </div>
-
 
     <input type="file" id="fileInput" accept="image/*">
 
     <div id="mainRow">
-      <button id="switchCamBtn">🔄</button>
       <button id="recordBtn"></button>
-      <div id="spacer46"></div>
+      <button id="switchCamBtn">🔄</button>
     </div>
 
     <div id="downloadBar">
