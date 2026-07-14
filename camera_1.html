@@ -13,7 +13,9 @@
     --text:#eef0f2;
     --sub:#9aa0a6;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;}
+  #memoTextarea{ -webkit-user-select:text; user-select:text; }
   html,body{
     margin:0; padding:0; height:100%; background:var(--bg); color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
@@ -27,8 +29,7 @@
   }
 
   #stage{
-    position:relative;
-    flex:1;
+    position:absolute; inset:0;
     background:#000;
     overflow:hidden;
     touch-action:none;
@@ -40,7 +41,7 @@
   #outputCanvas{
     position:absolute; inset:0;
     width:100%; height:100%;
-    object-fit:contain;
+    object-fit:cover;
     background:#000;
   }
   #placeholder{
@@ -166,12 +167,15 @@
   }
 
   #controls{
-    background:var(--panel);
+    position:absolute; left:0; right:0; bottom:0;
+    background:rgba(21,23,26,0.78);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
     border-top:1px solid var(--line);
     padding:10px 104px calc(env(safe-area-inset-bottom,0px) + 10px) 12px;
     display:flex; flex-direction:column; gap:6px;
-    position:relative;
     transition:max-height .25s ease, padding .25s ease;
+    z-index:10;
   }
   #controls.compact #slidersGrid{
     display:none;
