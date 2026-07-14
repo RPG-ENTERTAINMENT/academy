@@ -178,6 +178,26 @@
     max-height:20vh;
     padding-top:8px;
     padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+    position:relative;
+    padding-right:104px; /* space for the record button on the right */
+  }
+  #controls.compact #mainRow{
+    position:absolute;
+    right:16px;
+    top:50%;
+    transform:translateY(-50%);
+    margin-top:0;
+    gap:0;
+  }
+  #controls.compact #switchCamBtn,
+  #controls.compact #spacer46{
+    display:none;
+  }
+  #controls.compact #layerBtnRow button,
+  #controls.compact #layerBtnRow2 button,
+  #controls.compact #beautyBtn{
+    padding:9px 6px;
+    font-size:12px;
   }
   #controls.compact #opacityRow,
   #controls.compact #imgScrollRow,
